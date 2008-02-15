@@ -1,0 +1,36 @@
+.\" $Id: rcapid.8,v 1.1 2003/08/27 05:59:19 acs Exp $
+.\"
+.\" CHECKIN $Date: 2003/08/27 05:59:19 $
+.\"
+.TH rcapid 8
+.SH NAME
+rcapid \- remote CAPI server
+.SH SYNOPSIS
+rcapid [-l loglevel]
+.SH DESCRIPTION
+.B rcapid
+is a server to communicate with CAPI clients.
+
+It is designed to run from inetd.
+
+add the following line to /etc/services:
+
+  capi 6000/tcp
+
+add the following line to /etc/inetd.conf:
+
+  capi stream tcp nowait.9999 /usr/sbin/rcapid rcapid
+
+(there's not much documentation to be found. help!)
+
+.SH OPTIONS
+.TP
+.BI "-l" " loglevel"
+the level of verbosity in the logging.
+This is logged in /tmp/rcapid.log
+
+.SH BUGS
+The logging should go through syslog.
+
+.SH AUTHOR
+manpage written from C source and README by Paul Slootman <paul@debian.org>.

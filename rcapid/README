@@ -1,0 +1,38 @@
+First implementation of a simple Remote-CAPI server.
+It works with the CAPI-2.0 interface offered by CAPI4Linux.
+Tested so far with Brickware from Bintec for a MS-Windows Client.
+
+
+Installation:
+
+- add the following line to /etc/services:
+
+  capi 6000/tcp
+
+
+- add the following line to /etc/inetd.conf:
+
+  capi stream tcp nowait.9999 /sbin/rcapid rcapid
+
+
+- restart inetd
+
+Usage:
+rcapid [-c <forced controller number>] [-l <loglevel>]
+       
+To switch on logging into file /tmp/rcapid.log, a
+loglevel greater than 0 must be given.
+
+If rcapid shall only export one specific controller (in case
+you have more than one), you can specify to -c the local
+controller number which will be available as controller 1
+for clients via the net. With this option you can setup
+more than one rcapid's with different inetd ports for
+specific controllers.
+
+
+Have fun,
+
+Armin
+<mac@melware.de>
+
