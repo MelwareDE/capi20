@@ -1,44 +1,4 @@
 /*
- * $Id: capifunc.c,v 1.2 2005/07/20 12:04:07 acs Exp $
- *
- * $Log: capifunc.c,v $
- * Revision 1.2  2005/07/20 12:04:07  acs
- * Use new libcapi20 V3
- *
- * Revision 1.9  2005/03/08 07:26:47  keil
- * - add SENDING_COMPLETE to INFO_REQ CONNECT_REQ and CONNECT_IND
- * - remove SENDING_COMPLETE parameter (always NULL) from capi_fill_DISCONNECT_REQ
- *
- * Revision 1.8  2005/02/22 11:39:43  keil
- * for backward compatibility the libcapi20 can now compiled to support the
- * old (buggy) version2 ABI. This is not for future developments. This is only
- * to support old binaries, which are linked against the old V2 lib.
- *
- * Revision 1.7  2005/02/21 17:37:06  keil
- * libcapi20 version 3.0.0
- *  - add SENDING COMPLETE in ALERT_REQ
- *  - add Globalconfiguration to CONNECT_REQ/RESP and SELECT_B_PROTOCOL_REQ
- *
- * * NOTE: incompatible to 2.X.Y versions
- *
- * Revision 1.6  2004/10/06 15:24:43  calle
- * - "SendingComplete"-Patch reverted => 2.0.8 was not binaer compartible
- * - Bugfix: capi20_register() with MaxB3Connection == 0 results in a
- *   core dump. Now at least one buffer is allocated.
- *
- * Revision 1.5  2004/06/14 11:23:48  calle
- * Erweiterungen fuer ALERT_REQ.
- *
- * Revision 1.4  1999/09/10 17:20:33  calle
- * Last changes for proposed standards (CAPI 2.0):
- * - AK1-148 "Linux Extention"
- * - AK1-155 "Support of 64-bit Applications"
- *
- * Revision 1.3  1998/08/30 09:57:17  calle
- * I hope it is know readable for everybody.
- *
- * Revision 1.1  1998/08/25 16:33:19  calle
- * Added CAPI2.0 library. First Version.
  *
  */
 

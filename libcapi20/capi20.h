@@ -1,23 +1,5 @@
 /*
- * $Id: capi20.h,v 1.2 2005/07/20 12:04:07 acs Exp $
- *
- * $Log: capi20.h,v $
- * Revision 1.2  2005/07/20 12:04:07  acs
- * Use new libcapi20 V3
- *
- * Revision 1.10  2000/04/03 14:27:15  calle
- * non CAPI2.0 standard functions now named capi20ext not capi20.
- * Extentionfunctions will work with actual driver version.
- *
- * Revision 1.9  2000/03/03 15:56:14  calle
- * - now uses cloning device /dev/capi20.
- * - middleware extentions prepared.
- *
- * Revision 1.8  1999/12/06 17:08:30  calle
- * - Splitted capi20.h into capi20.h and capiutils.h.
- *   - capi20.h: the functions from the CAPI-2.0 Spec
- *   - capiutils.h: the "CAPI-ADK" functions
- * - bug in 64Bit-Support fixed.
+ * CAPI 2.0 library
  *
  */
 #ifndef __CAPI20_H__

@@ -1,23 +1,4 @@
 /*
- * $Id: capidyn.c,v 1.3 2005/07/20 12:04:07 acs Exp $
- * 
- * $Log: capidyn.c,v $
- * Revision 1.3  2005/07/20 12:04:07  acs
- * Use new libcapi20 V3
- *
- * Revision 1.4  2004/01/16 15:27:11  calle
- * remove several warnings.
- *
- * Revision 1.3  2004/01/16 14:57:22  calle
- * gcc warning removed.
- *
- * Revision 1.2  2001/03/01 14:59:11  paul
- * Various patches to fix errors when using the newest glibc,
- * replaced use of insecure tempnam() function
- * and to remove warnings etc.
- *
- * Revision 1.1  2000/05/18 15:21:37  calle
- * static CAPI2.0 library that loads libcapi20.so dynamicly.
  *
  */
 
