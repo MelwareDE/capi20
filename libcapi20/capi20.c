@@ -55,6 +55,8 @@ static char *globalconfigfilename = "/etc/capi20.conf";
 static char *userconfigfilename = ".capi20rc";
 static unsigned short int port;
 static unsigned char hostname[1024];
+static int tracelevel;
+static unsigned char *tracefile;
 
 /* REMOTE-CAPI commands */
  
@@ -152,14 +154,12 @@ static int read_config(void)
 	if ((!fp) && ((fp = fopen(globalconfigfilename, "r")) == NULL))
 			return(0);
 
-	while(fgets(buf, sizeof(buf), fp))
-	{
+	while(fgets(buf, sizeof(buf), fp)) {
 		buf[strlen(buf)-1] = 0;
 		s = skip_whitespace(buf);
 		if (*s == 0 || *s == '#')
 					continue;
-		if(!(strncmp(s, "REMOTE", 6)))
-		{
+		if (!(strncmp(s, "REMOTE", 6))) {
 			remote_capi = 1;
 			s = skip_nonwhitespace(s);
 			
@@ -174,7 +174,19 @@ static int read_config(void)
 			port = strtol(t, NULL, 10);
 			if (!port)
 					port = 2662;
-			break;
+			continue;
+		} else if (!(strncmp(s, "TRACELEVEL", 10))) {
+			t = skip_nonwhitespace(s);
+			s = skip_whitespace(t);
+			tracelevel = (int)strtol(s, NULL, 10);
+			continue;
+		} else if (!(strncmp(s, "TRACEFILE", 9))) {
+			t = skip_nonwhitespace(s);
+			s = skip_whitespace(t);
+			t = skip_nonwhitespace(s);
+			if (*t) *t++ = 0;
+			tracefile = strdup(s);
+			continue;
 		}
 	}
 	fclose(fp);
@@ -198,8 +210,7 @@ static int open_socket(void)
 	sadd.sin_family = AF_INET;
 	sadd.sin_port = htons(port);
 	hostinfo = gethostbyname(hostname);
-	if (hostinfo)
-	{
+	if (hostinfo) {
 		sadd.sin_addr = *(struct in_addr *) hostinfo->h_addr;
 		if (!connect(fd, (struct sockaddr *) &sadd, sizeof(sadd))) {
 			return(fd);
@@ -271,6 +282,30 @@ static void set_rcapicmd_header(unsigned char **p, int len, _cword cmd, _cdword 
 	put_netword(p, cmd);
 	put_word(p, 0);
 	put_dword(p, ctrl);
+}
+
+static void write_capi_trace(int send, unsigned char *buf, int length, int datamsg)
+{
+	int fd;
+	_cdword ltime;
+	unsigned char header[7];
+
+	if (!tracefile)
+		return;
+
+	if (tracelevel < (datamsg + 1))
+		return;
+
+	fd = open(tracefile, O_WRONLY | O_CREAT | O_APPEND | O_NONBLOCK, 0644);
+	if (fd >= 0) {
+		ltime = (_cdword)time(NULL);
+		capimsg_setu16(header, 0, length + sizeof(header));
+		capimsg_setu32(header, 2, ltime);
+		header[6] = (send) ? 0x80:0x81;
+		write(fd, header, sizeof(header));
+		write(fd, buf, length);
+		close(fd);
+	}
 }
 
 unsigned capi20_isinstalled (void)
@@ -639,6 +674,7 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
     int subcmd = Msg[5];
     int rc;
     int fd;
+	int datareq = 0;
 
     if (capi20_isinstalled() != CapiNoError)
        return CapiRegNotInstalled;
@@ -655,40 +691,49 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
 
     memcpy(sbuf, Msg, len);
 
-    if (cmd == CAPI_DATA_B3) {
-       if (subcmd == CAPI_REQ) {
-          int datalen = (Msg[16] | (Msg[17] << 8));
-          void *dataptr;
-          if (sizeof(void *) != 4) {
-	      if (len >= 30) { /* 64Bit CAPI-extention */
-	         u_int64_t data64;
-	         memcpy(&data64,Msg+22, sizeof(u_int64_t));
-	         if (data64 != 0) dataptr = (void *)(unsigned long)data64;
-	         else dataptr = Msg + len; /* Assume data after message */
-	      } else {
-                 dataptr = Msg + len; /* Assume data after message */
-	      }
-          } else {
-              u_int32_t data;
-              memcpy(&data,Msg+12, sizeof(u_int32_t));
-              if (data != 0) dataptr = (void *)(unsigned long)data;
-              else dataptr = Msg + len; /* Assume data after message */
-	  }
- 	  if (len + datalen > SEND_BUFSIZ)
-             return CapiMsgOSResourceErr;
-          memcpy(sbuf+len, dataptr, datalen);
-          len += datalen;
-      } else if (subcmd == CAPI_RESP) {
-          capimsg_setu16(sbuf, 12,
-			 return_buffer(ApplID, CAPIMSG_U16(sbuf, 12)));
-      }
-   }
+	if (cmd == CAPI_DATA_B3) {
+		datareq = 1;
+		if (subcmd == CAPI_REQ) {
+			int datalen = (Msg[16] | (Msg[17] << 8));
+			void *dataptr;
+			if (sizeof(void *) != 4) {
+				if (len >= 30) { /* 64Bit CAPI-extention */
+					u_int64_t data64;
+					memcpy(&data64,Msg+22, sizeof(u_int64_t));
+					if (data64 != 0) {
+						dataptr = (void *)(unsigned long)data64;
+					} else {
+						dataptr = Msg + len; /* Assume data after message */
+					}
+				} else {
+					dataptr = Msg + len; /* Assume data after message */
+				}
+			} else {
+				u_int32_t data;
+				memcpy(&data,Msg+12, sizeof(u_int32_t));
+				if (data != 0) {
+					dataptr = (void *)(unsigned long)data;
+				} else {
+					dataptr = Msg + len; /* Assume data after message */
+				}
+			}
+			if (len + datalen > SEND_BUFSIZ)
+				return CapiMsgOSResourceErr;
+			memcpy(sbuf+len, dataptr, datalen);
+			len += datalen;
+		} else if (subcmd == CAPI_RESP) {
+			capimsg_setu16(sbuf, 12,
+			return_buffer(ApplID, CAPIMSG_U16(sbuf, 12)));
+		}
+	}
 
-   if (cmd == CAPI_DISCONNECT_B3 && subcmd == CAPI_RESP)
-      cleanup_buffers_for_ncci(ApplID, CAPIMSG_U32(sbuf, 8));   
+	if (cmd == CAPI_DISCONNECT_B3 && subcmd == CAPI_RESP)
+		cleanup_buffers_for_ncci(ApplID, CAPIMSG_U32(sbuf, 8));   
 
-   ret = CapiNoError;
-   errno = 0;
+	ret = CapiNoError;
+	errno = 0;
+
+	write_capi_trace(1, sbuf, len, datareq);
 
 	if (remote_capi) {
 		len += 2;
@@ -750,70 +795,72 @@ capi20_get_message (unsigned ApplID, unsigned char **Buf)
 		rc = read(fd, rcvbuf, bufsiz);
 	}
 
-    if (rc > 0) {
-	CAPIMSG_SETAPPID(rcvbuf, ApplID); // workaround for old driver
-        if (   CAPIMSG_COMMAND(rcvbuf) == CAPI_DATA_B3
-	    && CAPIMSG_SUBCOMMAND(rcvbuf) == CAPI_IND) {
-           save_datahandle(ApplID, offset, CAPIMSG_U16(rcvbuf, 18),
-					   CAPIMSG_U32(rcvbuf, 8));
-           capimsg_setu16(rcvbuf, 18, offset); /* patch datahandle */
-           if (sizeof(void *) == 4) {
-	       u_int32_t data = (u_int32_t)rcvbuf + CAPIMSG_LEN(rcvbuf);
-	       rcvbuf[12] = data & 0xff;
-	       rcvbuf[13] = (data >> 8) & 0xff;
-	       rcvbuf[14] = (data >> 16) & 0xff;
-	       rcvbuf[15] = (data >> 24) & 0xff;
-           } else {
-	       u_int64_t data;
-	       ulong radr = (ulong)rcvbuf;
-	       if (CAPIMSG_LEN(rcvbuf) < 30) {
-		  /*
-		   * grr, 64bit arch, but no data64 included,
-	           * seems to be old driver
-		   */
-	          memmove(rcvbuf+30, rcvbuf+CAPIMSG_LEN(rcvbuf),
-		          CAPIMSG_DATALEN(rcvbuf));
-	          rcvbuf[0] = 30;
-	          rcvbuf[1] = 0;
-	       }
-	       data = radr + CAPIMSG_LEN(rcvbuf);
-	       rcvbuf[12] = rcvbuf[13] = rcvbuf[14] = rcvbuf[15] = 0;
-	       rcvbuf[22] = data & 0xff;
-	       rcvbuf[23] = (data >> 8) & 0xff;
-	       rcvbuf[24] = (data >> 16) & 0xff;
-	       rcvbuf[25] = (data >> 24) & 0xff;
-	       rcvbuf[26] = (data >> 32) & 0xff;
-	       rcvbuf[27] = (data >> 40) & 0xff;
-	       rcvbuf[28] = (data >> 48) & 0xff;
-	       rcvbuf[29] = (data >> 56) & 0xff;
-	   }
-	   /* keep buffer */
-           return CapiNoError;
+	if (rc > 0) {
+		write_capi_trace(0, rcvbuf, rc, (CAPIMSG_COMMAND(rcvbuf) == CAPI_DATA_B3)? 1:0);
+		CAPIMSG_SETAPPID(rcvbuf, ApplID); // workaround for old driver
+		if ((CAPIMSG_COMMAND(rcvbuf) == CAPI_DATA_B3) &&
+		    (CAPIMSG_SUBCOMMAND(rcvbuf) == CAPI_IND)) {
+			save_datahandle(ApplID, offset, CAPIMSG_U16(rcvbuf, 18),
+				CAPIMSG_U32(rcvbuf, 8));
+			capimsg_setu16(rcvbuf, 18, offset); /* patch datahandle */
+			if (sizeof(void *) == 4) {
+				u_int32_t data = (u_int32_t)rcvbuf + CAPIMSG_LEN(rcvbuf);
+				rcvbuf[12] = data & 0xff;
+				rcvbuf[13] = (data >> 8) & 0xff;
+				rcvbuf[14] = (data >> 16) & 0xff;
+				rcvbuf[15] = (data >> 24) & 0xff;
+			} else {
+				u_int64_t data;
+				ulong radr = (ulong)rcvbuf;
+				if (CAPIMSG_LEN(rcvbuf) < 30) {
+					/*
+					 * grr, 64bit arch, but no data64 included,
+					 * seems to be old driver
+					 */
+					memmove(rcvbuf+30, rcvbuf+CAPIMSG_LEN(rcvbuf),
+						CAPIMSG_DATALEN(rcvbuf));
+					rcvbuf[0] = 30;
+					rcvbuf[1] = 0;
+				}
+				data = radr + CAPIMSG_LEN(rcvbuf);
+				rcvbuf[12] = rcvbuf[13] = rcvbuf[14] = rcvbuf[15] = 0;
+				rcvbuf[22] = data & 0xff;
+				rcvbuf[23] = (data >> 8) & 0xff;
+				rcvbuf[24] = (data >> 16) & 0xff;
+				rcvbuf[25] = (data >> 24) & 0xff;
+				rcvbuf[26] = (data >> 32) & 0xff;
+				rcvbuf[27] = (data >> 40) & 0xff;
+				rcvbuf[28] = (data >> 48) & 0xff;
+				rcvbuf[29] = (data >> 56) & 0xff;
+			}
+			/* keep buffer */
+			return CapiNoError;
+		}
+		return_buffer(ApplID, offset);
+		if ((CAPIMSG_COMMAND(rcvbuf) == CAPI_DISCONNECT) &&
+		    (CAPIMSG_SUBCOMMAND(rcvbuf) == CAPI_IND)) {
+			cleanup_buffers_for_plci(ApplID, CAPIMSG_U32(rcvbuf, 8));
+		}
+		return CapiNoError;
 	}
-        return_buffer(ApplID, offset);
-        if (   CAPIMSG_COMMAND(rcvbuf) == CAPI_DISCONNECT
-	    && CAPIMSG_SUBCOMMAND(rcvbuf) == CAPI_IND)
-           cleanup_buffers_for_plci(ApplID, CAPIMSG_U32(rcvbuf, 8));   
-        return CapiNoError;
-    }
 
-    return_buffer(ApplID, offset);
+	return_buffer(ApplID, offset);
 
-    if (rc == 0)
-        return CapiReceiveQueueEmpty;
+	if (rc == 0)
+		return CapiReceiveQueueEmpty;
 
-    switch (errno) {
-        case EMSGSIZE:
-            ret = CapiIllCmdOrSubcmdOrMsgToSmall;
-            break;
-        case EAGAIN:
-            return CapiReceiveQueueEmpty;
-        default:
-            ret = CapiMsgOSResourceErr;
-            break;
-    }
+	switch (errno) {
+	case EMSGSIZE:
+		ret = CapiIllCmdOrSubcmdOrMsgToSmall;
+		break;
+	case EAGAIN:
+		return CapiReceiveQueueEmpty;
+	default:
+		ret = CapiMsgOSResourceErr;
+		break;
+	}
 
-    return ret;
+	return ret;
 }
 
 unsigned char *
