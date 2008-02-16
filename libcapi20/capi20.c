@@ -20,13 +20,9 @@
 #define _LINUX_LIST_H
 #include <linux/capi.h>
  
-#define REMOTE_CAPI
-
-#ifdef REMOTE_CAPI
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#endif
  
 #include "capi20.h"
 
@@ -53,9 +49,6 @@ static char capidevnamenew[] = "/dev/isdn/capi20";
 
 static int                  capi_fd = -1;
 static capi_ioctl_struct    ioctl_data;
-
-
-#ifdef REMOTE_CAPI
 
 static int remote_capi;
 static char *globalconfigfilename = "/etc/capi20.conf";
@@ -280,15 +273,12 @@ static void set_rcapicmd_header(unsigned char **p, int len, _cword cmd, _cdword 
 	put_dword(p, ctrl);
 }
 
-#endif /* REMOTE_CAPI */
-
 unsigned capi20_isinstalled (void)
 {
     if (capi_fd >= 0)
         return CapiNoError;
 
     /*----- open managment link -----*/
-#ifdef REMOTE_CAPI
 	if(read_config() && (remote_capi)) {
 		capi_fd = open_socket();
 		if(capi_fd >= 0) {
@@ -297,7 +287,7 @@ unsigned capi20_isinstalled (void)
 		}
 		return CapiRegNotInstalled;
 	}
-#endif
+
     if ((capi_fd = open(capidevname, O_RDWR, 0666)) < 0 && errno == ENOENT)
        capi_fd = open(capidevnamenew, O_RDWR, 0666);
     if (capi_fd < 0)
@@ -529,20 +519,21 @@ capi20_register (unsigned MaxB3Connection,
 
     if (capi20_isinstalled() != CapiNoError)
        return CapiRegNotInstalled;
-#ifdef REMOTE_CAPI
-	if ((!remote_capi) || ((remote_capi) && ((fd = open_socket()) < 0)))
-#endif
-    if ((fd = open(capidevname, O_RDWR|O_NONBLOCK, 0666)) < 0 && errno == ENOENT)
-         fd = open(capidevnamenew, O_RDWR|O_NONBLOCK, 0666);
+	if ((!remote_capi) || ((remote_capi) && ((fd = open_socket()) < 0))) {
+	    if ((fd = open(capidevname, O_RDWR|O_NONBLOCK, 0666)) < 0 && 
+		     (errno == ENOENT)) {
+			fd = open(capidevnamenew, O_RDWR|O_NONBLOCK, 0666);
+		}
+	}
 
-    if (fd < 0)
-	return CapiRegOSResourceErr;
+    if (fd < 0) {
+		return CapiRegOSResourceErr;
+	}
 
     ioctl_data.rparams.level3cnt = MaxB3Connection;
     ioctl_data.rparams.datablkcnt = MaxB3Blks;
     ioctl_data.rparams.datablklen = MaxSizeB3;
 
-#ifdef REMOTE_CAPI
 	if(remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
@@ -565,10 +556,7 @@ capi20_register (unsigned MaxB3Connection,
 			close(fd);
 			return(errcode);
 		}
-	}
-	else
-#endif
-    if ((applid = ioctl(fd, CAPI_REGISTER, &ioctl_data)) < 0) {
+	} else if ((applid = ioctl(fd, CAPI_REGISTER, &ioctl_data)) < 0) {
         if (errno == EIO) {
             if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
 		close (fd);
@@ -661,10 +649,9 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
     fd = applid2fd(ApplID);
 
     sbuf = sndbuf;
-#ifdef REMOTE_CAPI
-    if (remote_capi)
+    if (remote_capi) {
 	    sbuf = sndbuf + 2;
-#endif
+	}
 
     memcpy(sbuf, Msg, len);
 
@@ -703,37 +690,36 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
    ret = CapiNoError;
    errno = 0;
 
-#ifdef REMOTE_CAPI
 	if (remote_capi) {
 		len += 2;
 		sbuf = sndbuf;
 		put_netword(&sbuf, len);
 	}
-#endif
     if ((rc = write(fd, sndbuf, len)) != len) {
-#ifdef REMOTE_CAPI
-	if (remote_capi)
-		ret = CapiMsgOSResourceErr;
-	else
-#endif
-        switch (errno) {
-            case EFAULT:
-            case EINVAL:
-                ret = CapiIllCmdOrSubcmdOrMsgToSmall;
-                break;
-            case EBADF:
-                ret = CapiIllAppNr;
-                break;
-            case EIO:
-                if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0)
-                    ret = CapiMsgOSResourceErr;
-                else ret = (unsigned)ioctl_data.errcode;
-                break;
-          default:
-                ret = CapiMsgOSResourceErr;
-                break;
-       }
-    }
+		if (remote_capi) {
+			ret = CapiMsgOSResourceErr;
+		} else {
+        	switch (errno) {
+	            case EFAULT:
+    	        case EINVAL:
+	                ret = CapiIllCmdOrSubcmdOrMsgToSmall;
+	                break;
+	            case EBADF:
+	                ret = CapiIllAppNr;
+	                break;
+	            case EIO:
+	                if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
+	                    ret = CapiMsgOSResourceErr;
+	                } else {
+						ret = (unsigned)ioctl_data.errcode;
+					}
+	                break;
+	          default:
+	                ret = CapiMsgOSResourceErr;
+	                break;
+	       }
+	    }
+	}
 
     return ret;
 }
@@ -758,12 +744,11 @@ capi20_get_message (unsigned ApplID, unsigned char **Buf)
     if ((*Buf = rcvbuf = get_buffer(ApplID, &bufsiz, &offset)) == 0)
         return CapiMsgOSResourceErr;
 
-#ifdef REMOTE_CAPI
-	if (remote_capi)
+	if (remote_capi) {
 		rc = socket_read(fd, rcvbuf, bufsiz);
-	else
-#endif
+	} else {
 		rc = read(fd, rcvbuf, bufsiz);
+	}
 
     if (rc > 0) {
 	CAPIMSG_SETAPPID(rcvbuf, ApplID); // workaround for old driver
@@ -836,7 +821,7 @@ capi20_get_manufacturer(unsigned Ctrl, unsigned char *Buf)
 {
     if (capi20_isinstalled() != CapiNoError)
        return 0;
-#ifdef REMOTE_CAPI
+
 	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
@@ -847,7 +832,7 @@ capi20_get_manufacturer(unsigned Ctrl, unsigned char *Buf)
 		Buf[CAPI_MANUFACTURER_LEN-1] = 0;
 		return Buf;
 	}
-#endif
+
     ioctl_data.contr = Ctrl;
     if (ioctl(capi_fd, CAPI_GET_MANUFACTURER, &ioctl_data) < 0)
        return 0;
@@ -861,7 +846,7 @@ capi20_get_version(unsigned Ctrl, unsigned char *Buf)
 {
     if (capi20_isinstalled() != CapiNoError)
         return 0;
-#ifdef REMOTE_CAPI
+
 	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
@@ -871,10 +856,11 @@ capi20_get_version(unsigned Ctrl, unsigned char *Buf)
 		memcpy(Buf, buf + 1, sizeof(capi_version));
 		return Buf;
 	}
-#endif
+
     ioctl_data.contr = Ctrl;
-    if (ioctl(capi_fd, CAPI_GET_VERSION, &ioctl_data) < 0)
+    if (ioctl(capi_fd, CAPI_GET_VERSION, &ioctl_data) < 0) {
         return 0;
+	}
     memcpy(Buf, &ioctl_data.version, sizeof(capi_version));
     return Buf;
 }
@@ -884,7 +870,7 @@ capi20_get_serial_number(unsigned Ctrl, unsigned char *Buf)
 {
     if (capi20_isinstalled() != CapiNoError)
         return 0;
-#ifdef REMOTE_CAPI
+
 	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
@@ -895,7 +881,7 @@ capi20_get_serial_number(unsigned Ctrl, unsigned char *Buf)
 		Buf[CAPI_SERIAL_LEN-1] = 0;
 		return Buf;
 	}
-#endif
+
     ioctl_data.contr = Ctrl;
     if (ioctl(capi_fd, CAPI_GET_SERIAL, &ioctl_data) < 0)
         return 0;
@@ -910,7 +896,6 @@ capi20_get_profile(unsigned Ctrl, unsigned char *Buf)
     if (capi20_isinstalled() != CapiNoError)
         return CapiMsgNotInstalled;
 
-#ifdef REMOTE_CAPI
 	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
@@ -922,7 +907,7 @@ capi20_get_profile(unsigned Ctrl, unsigned char *Buf)
 		}
 		return (*(unsigned short *)buf); 
 	}
-#endif
+
     ioctl_data.contr = Ctrl;
     if (ioctl(capi_fd, CAPI_GET_PROFILE, &ioctl_data) < 0) {
         if (errno != EIO)
@@ -979,10 +964,9 @@ capi20_fileno(unsigned ApplID)
 int
 capi20ext_get_flags(unsigned ApplID, unsigned *flagsptr)
 {
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+	if (remote_capi)
 		return CapiMsgOSResourceErr;
-#endif
+
    if (ioctl(applid2fd(ApplID), CAPI_GET_FLAGS, flagsptr) < 0)
       return CapiMsgOSResourceErr;
    return CapiNoError;
@@ -991,10 +975,9 @@ capi20ext_get_flags(unsigned ApplID, unsigned *flagsptr)
 int
 capi20ext_set_flags(unsigned ApplID, unsigned flags)
 {
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+	if (remote_capi)
 		return CapiMsgOSResourceErr;
-#endif
+
    if (ioctl(applid2fd(ApplID), CAPI_SET_FLAGS, &flags) < 0)
       return CapiMsgOSResourceErr;
    return CapiNoError;
@@ -1003,10 +986,9 @@ capi20ext_set_flags(unsigned ApplID, unsigned flags)
 int
 capi20ext_clr_flags(unsigned ApplID, unsigned flags)
 {
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+	if (remote_capi)
 		return CapiMsgOSResourceErr;
-#endif
+
    if (ioctl(applid2fd(ApplID), CAPI_CLR_FLAGS, &flags) < 0)
       return CapiMsgOSResourceErr;
    return CapiNoError;
@@ -1016,13 +998,14 @@ char *
 capi20ext_get_tty_devname(unsigned applid, unsigned ncci, char *buf, size_t size)
 {
 	int unit;
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+
+	if (remote_capi)
 		return NULL;
-#endif
-        unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
-        if (unit < 0)
-			return NULL;
+
+	unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
+	if (unit < 0)
+		return NULL;
+
 	snprintf(buf, size, "/dev/capi/%d", unit);
 	return buf;
 }
@@ -1031,23 +1014,23 @@ char *
 capi20ext_get_raw_devname(unsigned applid, unsigned ncci, char *buf, size_t size)
 {
 	int unit;
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+
+	if (remote_capi)
 		return NULL;
-#endif
-        unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
-        if (unit < 0)
-			return NULL;
+
+	unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
+	if (unit < 0)
+		return NULL;
+
 	snprintf(buf, size, "/dev/capi/r%d", unit);
 	return buf;
 }
 
 int capi20ext_ncci_opencount(unsigned applid, unsigned ncci)
 {
-#ifdef REMOTE_CAPI
-	if(remote_capi)
+	if (remote_capi)
 		return CapiMsgOSResourceErr;
-#endif
+
    return ioctl(applid2fd(applid), CAPI_NCCI_OPENCOUNT, &ncci);
 }
 
@@ -1056,18 +1039,20 @@ static void exitlib(void) __attribute__((destructor));
 
 static void initlib(void)
 {
-   int i;
-   for (i=0; i < MAX_APPL; i++)
-	applidmap[i] = -1;
+	int i;
+
+	for (i = 0; i < MAX_APPL; i++) {
+		applidmap[i] = -1;
+	}
 }
 
 static void exitlib(void)
 {
-#ifdef REMOTE_CAPI
 	remote_capi = 0;
-#endif
+
     if (capi_fd >= 0) {
        close(capi_fd);
        capi_fd = -1;
     }
 }
+
