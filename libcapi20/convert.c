@@ -411,22 +411,20 @@ static unsigned char *cpars[] = {
 /*-------------------------------------------------------*/
 
 #ifdef _BIG_ENDIAN
-#define byteTLcpy(x,y)        *(_cbyte *)(x)=*(_cbyte *)(y);
 #define wordTLcpy(x,y)        *(_cword *)(x)=bswap_16(*(_cword *)(y));
 #define dwordTLcpy(x,y)       *(_cdword *)(x)=bswap_32(*(_cdword *)(y));
  
-#define byteTRcpy(x,y)        *(_cbyte *)(y)=*(_cbyte *)(x);
 #define wordTRcpy(x,y)        *(_cword *)(y)=bswap_16(*(_cword *)(x));
 #define dwordTRcpy(x,y)       *(_cdword *)(y)=bswap_32(*(_cdword *)(x));
   
 #define qwordTLcpy(x,y)       *(_cqword *)(x)=bswap_64(*(_cqword *)(y));
 #define qwordTRcpy(x,y)       *(_cqword *)(y)=bswap_64(*(_cqword *)(x));
+
 #else
-#define byteTLcpy(x,y)        *(_cbyte *)(x)=*(_cbyte *)(y);
+
 #define wordTLcpy(x,y)        *(_cword *)(x)=*(_cword *)(y);
 #define dwordTLcpy(x,y)       memcpy(x,y,4);
 
-#define byteTRcpy(x,y)        *(_cbyte *)(y)=*(_cbyte *)(x);
 #define wordTRcpy(x,y)        *(_cword *)(y)=*(_cword *)(x);
 #define dwordTRcpy(x,y)       memcpy(y,x,4);
 
@@ -434,6 +432,8 @@ static unsigned char *cpars[] = {
 #define qwordTRcpy(x,y)       memcpy(y,x,8);
 #endif
 
+#define byteTLcpy(x,y)        *(_cbyte *)(x)=*(_cbyte *)(y);
+#define byteTRcpy(x,y)        *(_cbyte *)(y)=*(_cbyte *)(x);
 #define structTLcpy(x,y,l)    memcpy (x,y,l)
 #define structTLcpyovl(x,y,l) memmove (x,y,l)
 #define structTRcpy(x,y,l)    memcpy (y,x,l)
@@ -875,7 +875,9 @@ static void printstruct(_cbyte * m)
 		len = m[0];
 		m += 1;
 	} else {
-		len = ((_cword *) (m + 1))[0];
+		_cword iw;
+		wordTLcpy(&iw, (m + 1));
+		len = (unsigned)iw;
 		m += 3;
 	}
 	printstructlen(m, len);
@@ -913,15 +915,19 @@ static void protocol_message_2_pars(_cmsg * cmsg, int level)
 			break;
 		case _CSTRUCT:
 			bufprint("%-*s = ", slen, NAME);
-			if (cmsg->m[cmsg->l] == '\0')
+			if (cmsg->m[cmsg->l] == '\0') {
 				bufprint("default");
-			else
+			} else {
 				printstruct(cmsg->m + cmsg->l);
+			}
 			bufprint("\n");
-			if (cmsg->m[cmsg->l] != 0xff)
+			if (cmsg->m[cmsg->l] != 0xff) {
 				cmsg->l += 1 + cmsg->m[cmsg->l];
-			else
-				cmsg->l += 3 + *(_cword *) (cmsg->m + cmsg->l + 1);
+			} else {
+				_cword iw;
+				wordTLcpy(&iw, (cmsg->m + cmsg->l + 1));
+				cmsg->l += 3 + iw;
+			}
 
 			break;
 

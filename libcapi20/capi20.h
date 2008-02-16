@@ -8,11 +8,12 @@
 #ifndef __CAPI20_H__
 #define __CAPI20_H__
 
-#include <sys/time.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdlib.h>
+#include <sys/time.h>
 
 /* standard CAPI2.0 functions */
 

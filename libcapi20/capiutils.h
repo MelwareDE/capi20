@@ -116,6 +116,7 @@ typedef enum { CAPI_COMPOSE = 0, CAPI_DEFAULT = 1 } _cmstruct;
 #define CAPIMSG_U8(m, off)	(m[off])
 #define CAPIMSG_U16(m, off)	(m[off]|(m[(off)+1]<<8))
 #define CAPIMSG_U32(m, off)	(m[off]|(m[(off)+1]<<8)|(m[(off)+2]<<16)|(m[(off)+3]<<24))
+#define CAPIMSG_U64(m, off) (((_cqword)CAPIMSG_U32(m, off))|(((_cqword)CAPIMSG_U32(m, off+4))<<32))
 #define	CAPIMSG_LEN(m)		CAPIMSG_U16(m,0)
 #define	CAPIMSG_APPID(m)	CAPIMSG_U16(m,2)
 #define	CAPIMSG_COMMAND(m)	CAPIMSG_U8(m,4)
@@ -144,6 +145,18 @@ static inline void capimsg_setu32(void *m, int off, _cdword val)
 	((_cbyte *)m)[off+1] = (val >> 8) & 0xff;
 	((_cbyte *)m)[off+2] = (val >> 16) & 0xff;
 	((_cbyte *)m)[off+3] = (val >> 24) & 0xff;
+}
+
+static inline void capimsg_setu64(void *m, int off, _cqword val)
+{
+	((_cbyte *)m)[off] = val & 0xff;
+	((_cbyte *)m)[off+1] = (val >> 8) & 0xff;
+	((_cbyte *)m)[off+2] = (val >> 16) & 0xff;
+	((_cbyte *)m)[off+3] = (val >> 24) & 0xff;
+	((_cbyte *)m)[off+4] = (val >> 32) & 0xff;
+	((_cbyte *)m)[off+5] = (val >> 40) & 0xff;
+	((_cbyte *)m)[off+6] = (val >> 48) & 0xff;
+	((_cbyte *)m)[off+7] = (val >> 56) & 0xff;
 }
 
 #define	CAPIMSG_SETLEN(m, len)		capimsg_setu16(m, 0, len)
