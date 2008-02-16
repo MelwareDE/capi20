@@ -4,6 +4,8 @@
  * 
  * Copyright 1997 by Carsten Paeth (calle@calle.in-berlin.de)
  * 
+ * This program is free software and may be modified and 
+ * distributed under the terms of the GNU Public License.
  * 
  */
 #ifndef __CAPICMD_H__

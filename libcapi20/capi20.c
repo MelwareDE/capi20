@@ -4,6 +4,9 @@
  * 2002-03-27 - Added remote capi features.
  *              Armin Schindler <armin@melware.de>
  *
+ * This program is free software and may be modified and 
+ * distributed under the terms of the GNU Public License.
+ *
  */
 #include <sys/types.h>
 #include <sys/ioctl.h>

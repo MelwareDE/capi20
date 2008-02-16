@@ -1,6 +1,9 @@
 /*
  * CAPI 2.0 library
  *
+ * This program is free software and may be modified and 
+ * distributed under the terms of the GNU Public License.
+ *
  */
 #ifndef __CAPI20_H__
 #define __CAPI20_H__

@@ -1,5 +1,8 @@
 /*
  *
+ * This program is free software and may be modified and 
+ * distributed under the terms of the GNU Public License.
+ *
  */
 
 #include <sys/types.h>
