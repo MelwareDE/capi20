@@ -1018,11 +1018,11 @@ capi20ext_get_tty_devname(unsigned applid, unsigned ncci, char *buf, size_t size
 	int unit;
 #ifdef REMOTE_CAPI
 	if(remote_capi)
-		return CapiMsgOSResourceErr;
+		return NULL;
 #endif
         unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
         if (unit < 0)
-		return 0;
+			return NULL;
 	snprintf(buf, size, "/dev/capi/%d", unit);
 	return buf;
 }
@@ -1033,11 +1033,11 @@ capi20ext_get_raw_devname(unsigned applid, unsigned ncci, char *buf, size_t size
 	int unit;
 #ifdef REMOTE_CAPI
 	if(remote_capi)
-		return CapiMsgOSResourceErr;
+		return NULL;
 #endif
         unit = ioctl(applid2fd(applid), CAPI_NCCI_GETUNIT, &ncci);
         if (unit < 0)
-		return 0;
+			return NULL;
 	snprintf(buf, size, "/dev/capi/r%d", unit);
 	return buf;
 }
