@@ -21,6 +21,17 @@ If this doesn't exist, the library tries the old, normal way
 of using the local /dev/capi20.
 
 
+Trace-Feature:
+If the CAPI messages shall be logged, add the following entries to
+the configuration file:
+  TRACEFILE </path/to/tracefile>
+  TRACELEVEL 0|1|2
+
+The tracelevel configured which CAPI messages shall be logged:
+ 0 = none
+ 1 = signaling messages
+ 2 = all (including data messages)
+
 ---
 Armin Schindler
 armin@melware.de
