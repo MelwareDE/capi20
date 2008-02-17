@@ -1,4 +1,4 @@
-/* $Id: capiinfo.c,v 1.2 2005/07/20 12:43:45 acs Exp $
+/* 
  *
  * A CAPI application to get infomation about installed controllers
  *
@@ -15,34 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Log: capiinfo.c,v $
- * Revision 1.2  2005/07/20 12:43:45  acs
- * updated to work with new libcapi
- *
- * Revision 1.1  2003/08/27 05:59:18  acs
- * inittial version of capi4linux utils
- *
- * Revision 1.6  2003/08/17 09:07:29  armin
- * added fixes from Karsten Keil
- * - typos
- * - wrong b3support bits
- *
- * Revision 1.5  2003/04/04 13:36:22  armin
- * fixed compiler warnings.
- *
- * Revision 1.4  2003/03/28 11:17:01  armin
- * fixed endian errors.
- *
- * Revision 1.3  2003/01/20 13:52:35  armin
- * added Calle's fix for correct AVM Manufacturer version.
- *
- * Revision 1.2  2002/03/28 09:55:56  armin
- * small fix and added output of number of controllers.
- *
- * Revision 1.1  2002/03/27 16:26:54  armin
- * First checkin on new cvs server.
- *
  *
  */
 #include <stdio.h>
@@ -162,10 +134,16 @@ int main(int argc, char **argv)
    for (i = 1; i <= ncontr; i++) {
        isAVM = 0;
        printf("Controller %d:\n", i);
-       CAPI20_GET_MANUFACTURER (i, buf);
+       if (!CAPI20_GET_MANUFACTURER (i, buf)) {
+           fprintf(stderr, "could not get manufacturer info for controller %d\n", i);
+           return 1;
+       }
        printf("Manufacturer: %s\n", buf);
        if (strstr((char *)buf, "AVM") != 0) isAVM = 1;
-       CAPI20_GET_VERSION (i, buf);
+       if (!CAPI20_GET_VERSION (i, buf)) {
+           fprintf(stderr, "could not get capi version info for controller %d\n", i);
+           return 1;
+       }
        vbuf = (unsigned int *)buf;
        printf("CAPI Version: %u.%u\n", GET_DWORD(&vbuf[0]), GET_DWORD(&vbuf[1]));
        if (isAVM) {
@@ -178,9 +156,16 @@ int main(int argc, char **argv)
        } else {
           printf("Manufacturer Version: %u.%u\n", GET_DWORD(&vbuf[2]), GET_DWORD(&vbuf[3]));
        }
-       CAPI20_GET_SERIAL_NUMBER (i, buf);
+       if (!CAPI20_GET_SERIAL_NUMBER (i, buf)) {
+           fprintf(stderr, "could not get serial number info for controller %d\n", i);
+           return 1;
+       }
        printf("Serial Number: %s\n", (char *)buf);
-       CAPI20_GET_PROFILE(i, (CAPI_MESSAGE)&cprofile);
+       err = CAPI20_GET_PROFILE(i, (CAPI_MESSAGE)&cprofile);
+       if (err != CapiNoError) {
+           fprintf(stderr, "could not get profile info for controller %d - %s (%#x)\n", i, capi_info2str(err), err);
+           return 1;
+       }
        printf("BChannels: %u\n", GET_WORD(&cprofile.nbchannel));
        printf("Global Options: 0x%08x\n", GET_DWORD(&cprofile.goptions));
        showbitvalues(goptions, GET_DWORD(&cprofile.goptions));
