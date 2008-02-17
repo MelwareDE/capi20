@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *  2002-02-20 - fixed stdin read timeout problem and added -c option
- *               Armin Schindler <mac@melware.de>
+ *               Armin Schindler <armin@melware.de>
  *
  */
 
