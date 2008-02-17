@@ -17,10 +17,11 @@ extern "C" {
 
 /* standard CAPI2.0 functions */
 
-unsigned capi20_register (unsigned MaxLogicalConnection,
-			  unsigned MaxBDataBlocks,
-			  unsigned MaxBDataLen,
-			  unsigned *ApplIDp);
+unsigned capi20_register (
+	unsigned MaxLogicalConnection,
+	unsigned MaxBDataBlocks,
+	unsigned MaxBDataLen,
+	unsigned *ApplIDp);
 
 unsigned capi20_release (unsigned ApplID);
 
@@ -50,10 +51,17 @@ int capi20ext_get_flags(unsigned ApplID, unsigned *flagsptr);
 int capi20ext_set_flags(unsigned ApplID, unsigned flags);
 int capi20ext_clr_flags(unsigned ApplID, unsigned flags);
 
-char *capi20ext_get_tty_devname(unsigned applid, unsigned ncci,
-				char *buf, size_t size);
-char *capi20ext_get_raw_devname(unsigned applid, unsigned ncci,
-				char *buf, size_t size);
+char *capi20ext_get_tty_devname(
+	unsigned applid,
+	unsigned ncci,
+	char *buf,
+	size_t size);
+
+char *capi20ext_get_raw_devname(
+	unsigned applid,
+	unsigned ncci,
+	char *buf,
+	size_t size);
 
 int capi20ext_ncci_opencount(unsigned applid, unsigned ncci);
 
@@ -68,3 +76,4 @@ int capi20ext_ncci_opencount(unsigned applid, unsigned ncci);
 #endif
 
 #endif /* __CAPI20_H */
+
