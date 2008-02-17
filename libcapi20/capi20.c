@@ -8,6 +8,7 @@
  * distributed under the terms of the GNU Public License.
  *
  */
+
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -144,8 +145,7 @@ static int read_config(void)
 	char *s, *t;
 	unsigned char buf[1024];
 
-	if ((s = getenv("HOME")) != NULL)
-	{
+	if ((s = getenv("HOME")) != NULL) {
 		strcpy(buf, s);
 		strcat(buf, "/");
 		strcat(buf, userconfigfilename);
@@ -310,27 +310,29 @@ static void write_capi_trace(int send, unsigned char *buf, int length, int datam
 
 unsigned capi20_isinstalled (void)
 {
-    if (capi_fd >= 0)
-        return CapiNoError;
+	if (capi_fd >= 0)
+		return CapiNoError;
 
-    /*----- open managment link -----*/
-	if(read_config() && (remote_capi)) {
+	/*----- open managment link -----*/
+	if (read_config() && (remote_capi)) {
 		capi_fd = open_socket();
-		if(capi_fd >= 0) {
+		if (capi_fd >= 0) {
 			/* TODO: we could do some AUTH here with rcapid */
 			return CapiNoError;
 		}
 		return CapiRegNotInstalled;
 	}
 
-    if ((capi_fd = open(capidevname, O_RDWR, 0666)) < 0 && errno == ENOENT)
-       capi_fd = open(capidevnamenew, O_RDWR, 0666);
-    if (capi_fd < 0)
-       return CapiRegNotInstalled;
+	if ((capi_fd = open(capidevname, O_RDWR, 0666)) < 0 && (errno == ENOENT))
+		capi_fd = open(capidevnamenew, O_RDWR, 0666);
 
-    if (ioctl(capi_fd, CAPI_INSTALLED, 0) == 0)
-	return CapiNoError;
-    return CapiRegNotInstalled;
+	if (capi_fd < 0)
+		return CapiRegNotInstalled;
+
+	if (ioctl(capi_fd, CAPI_INSTALLED, 0) == 0)
+		return CapiNoError;
+
+	return CapiRegNotInstalled;
 }
 
 /*
@@ -343,40 +345,43 @@ static int applidmap[MAX_APPL];
 
 static inline int remember_applid(unsigned applid, int fd)
 {
-   if (applid >= MAX_APPL)
-	return -1;
-   applidmap[applid] = fd;
-   return 0;
+	if (applid >= MAX_APPL)
+		return -1;
+
+	applidmap[applid] = fd;
+	return 0;
 }
 
 static inline unsigned alloc_applid(int fd)
 {
-   unsigned applid;
-   for (applid=1; applid < MAX_APPL; applid++) {
-       if (applidmap[applid] < 0) {
-          applidmap[applid] = fd;
-          return applid;
-       }
-   }
-   return 0;
+	unsigned applid;
+
+	for (applid = 1; applid < MAX_APPL; applid++) {
+		if (applidmap[applid] < 0) {
+			applidmap[applid] = fd;
+			return applid;
+		}
+	}
+	return 0;
 }
 
 static inline void freeapplid(unsigned applid)
 {
-    if (applid < MAX_APPL)
-       applidmap[applid] = -1;
+	if (applid < MAX_APPL)
+		applidmap[applid] = -1;
 }
 
 static inline int validapplid(unsigned applid)
 {
-    return applid > 0 && applid < MAX_APPL && applidmap[applid] >= 0;
+	return ((applid > 0) && (applid < MAX_APPL) && (applidmap[applid] >= 0));
 }
 
 static inline int applid2fd(unsigned applid)
 {
-    if (applid < MAX_APPL)
-	    return applidmap[applid];
-    return -1;
+	if (applid < MAX_APPL)
+		return applidmap[applid];
+
+	return -1;
 }
 
 /*
@@ -384,156 +389,165 @@ static inline int applid2fd(unsigned applid)
  */
 
 struct recvbuffer {
-   struct recvbuffer *next;
-   unsigned int       datahandle;
-   unsigned int       used;
-   unsigned int       ncci;
-   unsigned char     *buf; /* 128 + MaxSizeB3 */
+	struct recvbuffer *next;
+	unsigned int  datahandle;
+	unsigned int  used;
+	unsigned int  ncci;
+	unsigned char *buf; /* 128 + MaxSizeB3 */
 };
 
 struct applinfo {
-   unsigned  maxbufs;
-   unsigned  nbufs;
-   size_t    recvbuffersize;
-   struct recvbuffer *buffers;
-   struct recvbuffer *firstfree;
-   struct recvbuffer *lastfree;
-   unsigned char *bufferstart;
+	unsigned  maxbufs;
+	unsigned  nbufs;
+	size_t    recvbuffersize;
+	struct recvbuffer *buffers;
+	struct recvbuffer *firstfree;
+	struct recvbuffer *lastfree;
+	unsigned char *bufferstart;
 };
 
-static struct applinfo *alloc_buffers(unsigned MaxB3Connection,
-		                      unsigned MaxB3Blks,
-		                      unsigned MaxSizeB3)
+static struct applinfo *alloc_buffers(
+	unsigned MaxB3Connection,
+	unsigned MaxB3Blks,
+	unsigned MaxSizeB3)
 {
-   struct applinfo *ap;
-   unsigned nbufs = 2 + MaxB3Connection * (MaxB3Blks + 1);
-   size_t recvbuffersize = 128 + MaxSizeB3;
-   unsigned i;
-   size_t size;
+	struct applinfo *ap;
+	unsigned nbufs = 2 + MaxB3Connection * (MaxB3Blks + 1);
+	size_t recvbuffersize = 128 + MaxSizeB3;
+	unsigned i;
+	size_t size;
 
-   if (recvbuffersize < 2048) recvbuffersize = 2048;
+	if (recvbuffersize < 2048)
+		recvbuffersize = 2048;
 
-   size = sizeof(struct applinfo);
-   size += sizeof(struct recvbuffer) * nbufs;
-   size += recvbuffersize * nbufs;
+	size = sizeof(struct applinfo);
+	size += sizeof(struct recvbuffer) * nbufs;
+	size += recvbuffersize * nbufs;
 
-   ap = (struct applinfo *)malloc(size);
-   if (ap == 0) return 0;
+	ap = (struct applinfo *)malloc(size);
+	if (ap == 0)
+		return 0;
 
-   memset(ap, 0, size);
-   ap->maxbufs = nbufs;
-   ap->recvbuffersize = recvbuffersize;
-   ap->buffers = (struct recvbuffer *)(ap+1);
-   ap->firstfree = ap->buffers;
-   ap->bufferstart = (unsigned char *)(ap->buffers+nbufs);
-   for (i=0; i < ap->maxbufs; i++) {
-      ap->buffers[i].next = &ap->buffers[i+1];
-      ap->buffers[i].used = 0;
-      ap->buffers[i].ncci = 0;
-      ap->buffers[i].buf = ap->bufferstart+(recvbuffersize*i);
-   }
-   ap->lastfree = &ap->buffers[ap->maxbufs-1];
-   ap->lastfree->next = 0;
-   return ap;
+	memset(ap, 0, size);
+	ap->maxbufs = nbufs;
+	ap->recvbuffersize = recvbuffersize;
+	ap->buffers = (struct recvbuffer *)(ap+1);
+	ap->firstfree = ap->buffers;
+	ap->bufferstart = (unsigned char *)(ap->buffers+nbufs);
+	for (i = 0; i < ap->maxbufs; i++) {
+		ap->buffers[i].next = &ap->buffers[i+1];
+		ap->buffers[i].used = 0;
+		ap->buffers[i].ncci = 0;
+		ap->buffers[i].buf = ap->bufferstart+(recvbuffersize*i);
+	}
+	ap->lastfree = &ap->buffers[ap->maxbufs-1];
+	ap->lastfree->next = 0;
+	return ap;
 }
 
 static void free_buffers(struct applinfo *ap)
 {
-   free(ap);
+	free(ap);
 }
 
 static struct applinfo *applinfo[MAX_APPL];
 
 static unsigned char *get_buffer(unsigned applid, size_t *sizep, unsigned *handle)
 {
-   struct applinfo *ap;
-   struct recvbuffer *buf;
+	struct applinfo *ap;
+	struct recvbuffer *buf;
 
-   assert(validapplid(applid));
-   ap = applinfo[applid];
-   if ((buf = ap->firstfree) == 0)
-      return 0;
-   ap->firstfree = buf->next;
-   buf->next = 0;
-   buf->used = 1;
-   ap->nbufs++;
-   *sizep = ap->recvbuffersize;
-   *handle  = (buf->buf-ap->bufferstart)/ap->recvbuffersize;
-   return buf->buf;
+	assert(validapplid(applid));
+	ap = applinfo[applid];
+	if ((buf = ap->firstfree) == 0)
+		return 0;
+
+	ap->firstfree = buf->next;
+	buf->next = 0;
+	buf->used = 1;
+	ap->nbufs++;
+	*sizep = ap->recvbuffersize;
+	*handle  = (buf->buf-ap->bufferstart)/ap->recvbuffersize;
+
+	return buf->buf;
 }
 
-static void save_datahandle(unsigned char applid,
-                            unsigned offset,
-			    unsigned datahandle,
-			    unsigned ncci)
+static void save_datahandle(
+	unsigned char applid,
+	unsigned offset,
+	unsigned datahandle,
+	unsigned ncci)
 {
-   struct applinfo *ap;
-   struct recvbuffer *buf;
+	struct applinfo *ap;
+	struct recvbuffer *buf;
 
-   assert(validapplid(applid));
-   ap = applinfo[applid];
-   assert(offset < ap->maxbufs);
-   buf = ap->buffers+offset;
-   buf->datahandle = datahandle;
-   buf->ncci = ncci;
+	assert(validapplid(applid));
+	ap = applinfo[applid];
+	assert(offset < ap->maxbufs);
+	buf = ap->buffers+offset;
+	buf->datahandle = datahandle;
+	buf->ncci = ncci;
 }
 
 static unsigned return_buffer(unsigned char applid, unsigned offset)
 {
-   struct applinfo *ap;
-   struct recvbuffer *buf;
+	struct applinfo *ap;
+	struct recvbuffer *buf;
 
-   assert(validapplid(applid));
-   ap = applinfo[applid];
-   assert(offset < ap->maxbufs);
-   buf = ap->buffers+offset;
-   assert(buf->used == 1);
-   assert(buf->next == 0);
-   if (ap->lastfree) {
-      ap->lastfree->next = buf;
-      ap->lastfree = buf;
-   } else {
-      ap->firstfree = ap->lastfree = buf;
-   }
-   buf->used = 0;
-   buf->ncci = 0;
-   assert(ap->nbufs-- > 0);
-   return buf->datahandle;
+	assert(validapplid(applid));
+	ap = applinfo[applid];
+	assert(offset < ap->maxbufs);
+	buf = ap->buffers+offset;
+	assert(buf->used == 1);
+	assert(buf->next == 0);
+
+	if (ap->lastfree) {
+		ap->lastfree->next = buf;
+		ap->lastfree = buf;
+	} else {
+		ap->firstfree = ap->lastfree = buf;
+	}
+	buf->used = 0;
+	buf->ncci = 0;
+	assert(ap->nbufs-- > 0);
+
+	return buf->datahandle;
 }
 
 static void cleanup_buffers_for_ncci(unsigned char applid, unsigned ncci)
 {
-   struct applinfo *ap;
-   unsigned i;
+	struct applinfo *ap;
+	unsigned i;
 	
-   assert(validapplid(applid));
-   ap = applinfo[applid];
+	assert(validapplid(applid));
+	ap = applinfo[applid];
 
-   for (i=0; i < ap->maxbufs; i++) {
-      if (ap->buffers[i].used) {
-         assert(ap->buffers[i].ncci != 0);
-	 if (ap->buffers[i].ncci == ncci)
-            return_buffer(applid, i);
-      }
-   }
+	for (i = 0; i < ap->maxbufs; i++) {
+		if (ap->buffers[i].used) {
+			assert(ap->buffers[i].ncci != 0);
+			if (ap->buffers[i].ncci == ncci) {
+				return_buffer(applid, i);
+			}
+		}
+	}
 }
 
 static void cleanup_buffers_for_plci(unsigned char applid, unsigned plci)
 {
-   struct applinfo *ap;
-   unsigned i;
+	struct applinfo *ap;
+	unsigned i;
 	
-   assert(validapplid(applid));
-   ap = applinfo[applid];
+	assert(validapplid(applid));
+	ap = applinfo[applid];
 
-   for (i=0; i < ap->maxbufs; i++) {
-      if (ap->buffers[i].used) {
-         assert(ap->buffers[i].ncci != 0);
-	 if (ap->buffers[i].ncci & 0xffff == plci) {
-            return_buffer(applid, i);
-	 }
-      }
-   }
+	for (i = 0; i < ap->maxbufs; i++) {
+		if (ap->buffers[i].used) {
+			assert(ap->buffers[i].ncci != 0);
+			if (ap->buffers[i].ncci & 0xffff == plci) {
+				return_buffer(applid, i);
+			}
+		}
+	}
 }
 
 /* 
@@ -541,14 +555,15 @@ static void cleanup_buffers_for_plci(unsigned char applid, unsigned plci)
  */
 
 unsigned
-capi20_register (unsigned MaxB3Connection,
-		 unsigned MaxB3Blks,
-		 unsigned MaxSizeB3,
-		 unsigned *ApplID)
+capi20_register(
+	unsigned MaxB3Connection,
+	unsigned MaxB3Blks,
+	unsigned MaxSizeB3,
+	unsigned *ApplID)
 {
-    int applid = 0;
-    char buf[PATH_MAX];
-    int i, fd = -1;
+	int applid = 0;
+	char buf[PATH_MAX];
+	int i, fd = -1;
 
     *ApplID = 0;
 
@@ -569,7 +584,7 @@ capi20_register (unsigned MaxB3Connection,
     ioctl_data.rparams.datablkcnt = MaxB3Blks;
     ioctl_data.rparams.datablklen = MaxSizeB3;
 
-	if(remote_capi) {
+	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
 		int errcode;
@@ -592,104 +607,106 @@ capi20_register (unsigned MaxB3Connection,
 			return(errcode);
 		}
 	} else if ((applid = ioctl(fd, CAPI_REGISTER, &ioctl_data)) < 0) {
-        if (errno == EIO) {
-            if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
-		close (fd);
-                return CapiRegOSResourceErr;
-	    }
-	    close (fd);
-            return (unsigned)ioctl_data.errcode;
-
-        } else if (errno == EINVAL) { // old kernel driver
-	    close (fd);
-	    fd = -1;
-	    for (i=0; fd < 0; i++) {
-		/*----- open pseudo-clone device -----*/
-		sprintf(buf, "/dev/capi20.%02d", i);
-		if ((fd = open(buf, O_RDWR|O_NONBLOCK, 0666)) < 0) {
-		    switch (errno) {
-		    case EEXIST:
-			break;
-		    default:
-			return CapiRegOSResourceErr;
-		    }
-		}
-	    }
-	    if (fd < 0)
-		return CapiRegOSResourceErr;
-
-	    ioctl_data.rparams.level3cnt = MaxB3Connection;
-	    ioctl_data.rparams.datablkcnt = MaxB3Blks;
-	    ioctl_data.rparams.datablklen = MaxSizeB3;
-
-	    if ((applid = ioctl(fd, CAPI_REGISTER, &ioctl_data)) < 0) {
 		if (errno == EIO) {
-		    if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
-			close(fd);
-			return CapiRegOSResourceErr;
-		    }
-		    close(fd);
-		    return (unsigned)ioctl_data.errcode;
-		}
+			if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
+				close (fd);
+				return CapiRegOSResourceErr;
+			}
+			close (fd);
+			return (unsigned)ioctl_data.errcode;
+		} else if (errno == EINVAL) { // old kernel driver
+			close (fd);
+			fd = -1;
+			for (i = 0; fd < 0; i++) {
+				/*----- open pseudo-clone device -----*/
+				sprintf(buf, "/dev/capi20.%02d", i);
+				if ((fd = open(buf, O_RDWR|O_NONBLOCK, 0666)) < 0) {
+					switch (errno) {
+					case EEXIST:
+						break;
+					default:
+						return CapiRegOSResourceErr;
+					}
+				}
+			}
+			if (fd < 0)
+				return CapiRegOSResourceErr;
+
+			ioctl_data.rparams.level3cnt = MaxB3Connection;
+			ioctl_data.rparams.datablkcnt = MaxB3Blks;
+			ioctl_data.rparams.datablklen = MaxSizeB3;
+
+			if ((applid = ioctl(fd, CAPI_REGISTER, &ioctl_data)) < 0) {
+				if (errno == EIO) {
+					if (ioctl(fd, CAPI_GET_ERRCODE, &ioctl_data) < 0) {
+						close(fd);
+						return CapiRegOSResourceErr;
+					}
+					close(fd);
+					return (unsigned)ioctl_data.errcode;
+				}
+				close(fd);
+				return CapiRegOSResourceErr;
+			}
+		    applid = alloc_applid(fd);
+		} // end old driver compatibility
+	}
+	if (remember_applid(applid, fd) < 0) {
 		close(fd);
 		return CapiRegOSResourceErr;
-	    }
-	    applid = alloc_applid(fd);
-	} // end old driver compatibility
-    }
-    if (remember_applid(applid, fd) < 0) {
-       close(fd);
-       return CapiRegOSResourceErr;
-    }
-    applinfo[applid] = alloc_buffers(MaxB3Connection, MaxB3Blks, MaxSizeB3);
-    if (applinfo[applid] == 0) {
-       close(fd);
-       return CapiRegOSResourceErr;
-    }
-    *ApplID = applid;
-    return CapiNoError;
+	}
+	applinfo[applid] = alloc_buffers(MaxB3Connection, MaxB3Blks, MaxSizeB3);
+	if (applinfo[applid] == 0) {
+		close(fd);
+		return CapiRegOSResourceErr;
+	}
+	*ApplID = applid;
+	return CapiNoError;
 }
 
 unsigned
 capi20_release (unsigned ApplID)
 {
-    if (capi20_isinstalled() != CapiNoError)
-       return CapiRegNotInstalled;
-    if (!validapplid(ApplID))
-        return CapiIllAppNr;
-    (void)close(applid2fd(ApplID));
-    freeapplid(ApplID);
-    free_buffers(applinfo[ApplID]);
-    applinfo[ApplID] = 0;
-    return CapiNoError;
+	if (capi20_isinstalled() != CapiNoError)
+		return CapiRegNotInstalled;
+
+	if (!validapplid(ApplID))
+		return CapiIllAppNr;
+
+	(void)close(applid2fd(ApplID));
+	freeapplid(ApplID);
+	free_buffers(applinfo[ApplID]);
+	applinfo[ApplID] = 0;
+
+	return CapiNoError;
 }
 
 unsigned
 capi20_put_message (unsigned ApplID, unsigned char *Msg)
 {
-    unsigned char sndbuf[SEND_BUFSIZ], *sbuf;
-    unsigned ret;
-    int len = (Msg[0] | (Msg[1] << 8));
-    int cmd = Msg[4];
-    int subcmd = Msg[5];
-    int rc;
-    int fd;
+	unsigned char sndbuf[SEND_BUFSIZ], *sbuf;
+	unsigned ret;
+	int len = (Msg[0] | (Msg[1] << 8));
+	int cmd = Msg[4];
+	int subcmd = Msg[5];
+	int rc;
+	int fd;
 	int datareq = 0;
 
-    if (capi20_isinstalled() != CapiNoError)
-       return CapiRegNotInstalled;
+	if (capi20_isinstalled() != CapiNoError)
+		return CapiRegNotInstalled;
 
-    if (!validapplid(ApplID))
-        return CapiIllAppNr;
+	if (!validapplid(ApplID))
+		return CapiIllAppNr;
 
-    fd = applid2fd(ApplID);
+	fd = applid2fd(ApplID);
 
-    sbuf = sndbuf;
-    if (remote_capi) {
-	    sbuf = sndbuf + 2;
+	sbuf = sndbuf;
+	if (remote_capi) {
+		sbuf = sndbuf + 2;
 	}
 
-    memcpy(sbuf, Msg, len);
+	memcpy(sbuf, Msg, len);
 
 	if (cmd == CAPI_DATA_B3) {
 		datareq = 1;
@@ -772,22 +789,22 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
 unsigned
 capi20_get_message (unsigned ApplID, unsigned char **Buf)
 {
-    unsigned char *rcvbuf;
-    unsigned offset;
-    unsigned ret;
-    size_t bufsiz;
-    int rc, fd;
+	unsigned char *rcvbuf;
+	unsigned offset;
+	unsigned ret;
+	size_t bufsiz;
+	int rc, fd;
 
-    if (capi20_isinstalled() != CapiNoError)
-       return CapiRegNotInstalled;
+	if (capi20_isinstalled() != CapiNoError)
+		return CapiRegNotInstalled;
 
-    if (!validapplid(ApplID))
-        return CapiIllAppNr;
+	if (!validapplid(ApplID))
+		return CapiIllAppNr;
 
-    fd = applid2fd(ApplID);
+	fd = applid2fd(ApplID);
 
-    if ((*Buf = rcvbuf = get_buffer(ApplID, &bufsiz, &offset)) == 0)
-        return CapiMsgOSResourceErr;
+	if ((*Buf = rcvbuf = get_buffer(ApplID, &bufsiz, &offset)) == 0)
+		return CapiMsgOSResourceErr;
 
 	if (remote_capi) {
 		rc = socket_read(fd, rcvbuf, bufsiz);
@@ -866,14 +883,14 @@ capi20_get_message (unsigned ApplID, unsigned char **Buf)
 unsigned char *
 capi20_get_manufacturer(unsigned Ctrl, unsigned char *Buf)
 {
-    if (capi20_isinstalled() != CapiNoError)
-       return 0;
+	if (capi20_isinstalled() != CapiNoError)
+		return 0;
 
 	if (remote_capi) {
 		unsigned char buf[100];
 		unsigned char *p = buf;
 		set_rcapicmd_header(&p, 14, RCAPI_GET_MANUFACTURER_REQ, Ctrl);
-		if(!(remote_command(capi_fd, buf, 14, RCAPI_GET_MANUFACTURER_CONF)))
+		if (!(remote_command(capi_fd, buf, 14, RCAPI_GET_MANUFACTURER_CONF)))
 			return 0;
 		memcpy(Buf, buf + 1, CAPI_MANUFACTURER_LEN);
 		Buf[CAPI_MANUFACTURER_LEN-1] = 0;
@@ -881,18 +898,21 @@ capi20_get_manufacturer(unsigned Ctrl, unsigned char *Buf)
 	}
 
     ioctl_data.contr = Ctrl;
-    if (ioctl(capi_fd, CAPI_GET_MANUFACTURER, &ioctl_data) < 0)
-       return 0;
-    memcpy(Buf, ioctl_data.manufacturer, CAPI_MANUFACTURER_LEN);
-    Buf[CAPI_MANUFACTURER_LEN-1] = 0;
-    return Buf;
+
+	if (ioctl(capi_fd, CAPI_GET_MANUFACTURER, &ioctl_data) < 0)
+		return 0;
+
+	memcpy(Buf, ioctl_data.manufacturer, CAPI_MANUFACTURER_LEN);
+	Buf[CAPI_MANUFACTURER_LEN-1] = 0;
+
+	return Buf;
 }
 
 unsigned char *
 capi20_get_version(unsigned Ctrl, unsigned char *Buf)
 {
-    if (capi20_isinstalled() != CapiNoError)
-        return 0;
+	if (capi20_isinstalled() != CapiNoError)
+		return 0;
 
 	if (remote_capi) {
 		unsigned char buf[100];
@@ -904,19 +924,19 @@ capi20_get_version(unsigned Ctrl, unsigned char *Buf)
 		return Buf;
 	}
 
-    ioctl_data.contr = Ctrl;
-    if (ioctl(capi_fd, CAPI_GET_VERSION, &ioctl_data) < 0) {
-        return 0;
+	ioctl_data.contr = Ctrl;
+	if (ioctl(capi_fd, CAPI_GET_VERSION, &ioctl_data) < 0) {
+		return 0;
 	}
-    memcpy(Buf, &ioctl_data.version, sizeof(capi_version));
-    return Buf;
+	memcpy(Buf, &ioctl_data.version, sizeof(capi_version));
+	return Buf;
 }
 
 unsigned char * 
 capi20_get_serial_number(unsigned Ctrl, unsigned char *Buf)
 {
-    if (capi20_isinstalled() != CapiNoError)
-        return 0;
+	if (capi20_isinstalled() != CapiNoError)
+		return 0;
 
 	if (remote_capi) {
 		unsigned char buf[100];
@@ -929,19 +949,22 @@ capi20_get_serial_number(unsigned Ctrl, unsigned char *Buf)
 		return Buf;
 	}
 
-    ioctl_data.contr = Ctrl;
-    if (ioctl(capi_fd, CAPI_GET_SERIAL, &ioctl_data) < 0)
-        return 0;
-    memcpy(Buf, &ioctl_data.serial, CAPI_SERIAL_LEN);
-    Buf[CAPI_SERIAL_LEN-1] = 0;
-    return Buf;
+	ioctl_data.contr = Ctrl;
+
+	if (ioctl(capi_fd, CAPI_GET_SERIAL, &ioctl_data) < 0)
+		return 0;
+
+	memcpy(Buf, &ioctl_data.serial, CAPI_SERIAL_LEN);
+	Buf[CAPI_SERIAL_LEN-1] = 0;
+
+	return Buf;
 }
 
 unsigned
 capi20_get_profile(unsigned Ctrl, unsigned char *Buf)
 {
-    if (capi20_isinstalled() != CapiNoError)
-        return CapiMsgNotInstalled;
+	if (capi20_isinstalled() != CapiNoError)
+		return CapiMsgNotInstalled;
 
 	if (remote_capi) {
 		unsigned char buf[100];
@@ -955,20 +978,22 @@ capi20_get_profile(unsigned Ctrl, unsigned char *Buf)
 		return (*(unsigned short *)buf); 
 	}
 
-    ioctl_data.contr = Ctrl;
-    if (ioctl(capi_fd, CAPI_GET_PROFILE, &ioctl_data) < 0) {
-        if (errno != EIO)
-            return CapiMsgOSResourceErr;
-        if (ioctl(capi_fd, CAPI_GET_ERRCODE, &ioctl_data) < 0)
-            return CapiMsgOSResourceErr;
-        return (unsigned)ioctl_data.errcode;
-    }
-    if (Ctrl)
-        memcpy(Buf, &ioctl_data.profile, sizeof(struct capi_profile));
-    else
-        memcpy(Buf, &ioctl_data.profile.ncontroller,
-                       sizeof(ioctl_data.profile.ncontroller));
-    return CapiNoError;
+	ioctl_data.contr = Ctrl;
+
+	if (ioctl(capi_fd, CAPI_GET_PROFILE, &ioctl_data) < 0) {
+		if (errno != EIO)
+			return CapiMsgOSResourceErr;
+		if (ioctl(capi_fd, CAPI_GET_ERRCODE, &ioctl_data) < 0)
+			return CapiMsgOSResourceErr;
+		return (unsigned)ioctl_data.errcode;
+	}
+	if (Ctrl) {
+		memcpy(Buf, &ioctl_data.profile, sizeof(struct capi_profile));
+	} else {
+		memcpy(Buf, &ioctl_data.profile.ncontroller,
+			sizeof(ioctl_data.profile.ncontroller));
+	}
+	return CapiNoError;
 }
 /*
  * functions added to the CAPI2.0 spec
@@ -977,31 +1002,31 @@ capi20_get_profile(unsigned Ctrl, unsigned char *Buf)
 unsigned
 capi20_waitformessage(unsigned ApplID, struct timeval *TimeOut)
 {
-  int fd;
-  fd_set rfds;
+	int fd;
+	fd_set rfds;
 
-  FD_ZERO(&rfds);
+	FD_ZERO(&rfds);
 
-  if (capi20_isinstalled() != CapiNoError)
-    return CapiRegNotInstalled;
+	if (capi20_isinstalled() != CapiNoError)
+		return CapiRegNotInstalled;
 
-  if(!validapplid(ApplID))
-    return CapiIllAppNr;
+	if (!validapplid(ApplID))
+		return CapiIllAppNr;
   
-  fd = applid2fd(ApplID);
+	fd = applid2fd(ApplID);
 
-  FD_SET(fd, &rfds);
+	FD_SET(fd, &rfds);
   
-  if (select(fd + 1, &rfds, NULL, NULL, TimeOut) < 1)
-	return CapiReceiveQueueEmpty;
+	if (select(fd + 1, &rfds, NULL, NULL, TimeOut) < 1)
+		return CapiReceiveQueueEmpty;
   
-  return CapiNoError;
+	return CapiNoError;
 }
 
 int
 capi20_fileno(unsigned ApplID)
 {
-   return applid2fd(ApplID);
+	return applid2fd(ApplID);
 }
 
 /*
@@ -1014,9 +1039,10 @@ capi20ext_get_flags(unsigned ApplID, unsigned *flagsptr)
 	if (remote_capi)
 		return CapiMsgOSResourceErr;
 
-   if (ioctl(applid2fd(ApplID), CAPI_GET_FLAGS, flagsptr) < 0)
-      return CapiMsgOSResourceErr;
-   return CapiNoError;
+	if (ioctl(applid2fd(ApplID), CAPI_GET_FLAGS, flagsptr) < 0)
+		return CapiMsgOSResourceErr;
+
+	return CapiNoError;
 }
 
 int
@@ -1025,9 +1051,10 @@ capi20ext_set_flags(unsigned ApplID, unsigned flags)
 	if (remote_capi)
 		return CapiMsgOSResourceErr;
 
-   if (ioctl(applid2fd(ApplID), CAPI_SET_FLAGS, &flags) < 0)
-      return CapiMsgOSResourceErr;
-   return CapiNoError;
+	if (ioctl(applid2fd(ApplID), CAPI_SET_FLAGS, &flags) < 0)
+		return CapiMsgOSResourceErr;
+
+	return CapiNoError;
 }
 
 int
@@ -1036,9 +1063,10 @@ capi20ext_clr_flags(unsigned ApplID, unsigned flags)
 	if (remote_capi)
 		return CapiMsgOSResourceErr;
 
-   if (ioctl(applid2fd(ApplID), CAPI_CLR_FLAGS, &flags) < 0)
-      return CapiMsgOSResourceErr;
-   return CapiNoError;
+	if (ioctl(applid2fd(ApplID), CAPI_CLR_FLAGS, &flags) < 0)
+		return CapiMsgOSResourceErr;
+
+	return CapiNoError;
 }
 
 char *
@@ -1078,7 +1106,7 @@ int capi20ext_ncci_opencount(unsigned applid, unsigned ncci)
 	if (remote_capi)
 		return CapiMsgOSResourceErr;
 
-   return ioctl(applid2fd(applid), CAPI_NCCI_OPENCOUNT, &ncci);
+	return ioctl(applid2fd(applid), CAPI_NCCI_OPENCOUNT, &ncci);
 }
 
 static void initlib(void) __attribute__((constructor));
