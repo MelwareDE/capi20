@@ -372,6 +372,7 @@ hdl_RCAPI_REGISTER_REQ(struct capi_message *msg) {
 			maxBDataLen;
 	byte	capiVersion;
 	int	capierr = 0;
+	unsigned int aid = 0;
 
 	structure	retstruct;
 	char		retstr [8];
@@ -400,13 +401,13 @@ hdl_RCAPI_REGISTER_REQ(struct capi_message *msg) {
 	
 	p = retstr;
 	if(capiVersion == 2) {
-		if((err = CAPI20_REGISTER(maxLogicalConnections, maxBDataBlocks, maxBDataLen, &capi_fd)) < 0) {
+		if((err = CAPI20_REGISTER(maxLogicalConnections, maxBDataBlocks, maxBDataLen, &aid)) < 0) {
 			capierr = err;
 			log(5, "registration not successful\n");
 		} else {
-			local_ApplID = capi_fd;
-			log(5, "registration successful: appl_id = %d\n", capi_fd);
-			capi_fd = capi20_fileno(capi_fd);
+			local_ApplID = aid;
+			log(5, "registration successful: appl_id = %d\n", aid);
+			capi_fd = capi20_fileno(aid);
 			log(5, "                         capi_fd = %d\n", capi_fd);
 		}
 	} else
@@ -428,7 +429,7 @@ hdl_RCAPI_GET_SERIAL_NUMBER_REQ(struct capi_message *msg) {
 
 	structure	retstruct;
 	char		retval [80];
-	char		serial_number [64];
+	char	serial_number [64];
 
 
 	log(5, "RCAPI_GET_SERIAL_NUMBER_REQ\n");
@@ -437,7 +438,7 @@ hdl_RCAPI_GET_SERIAL_NUMBER_REQ(struct capi_message *msg) {
 		CtrlNr = get_dword(&p);
 	}
 
-	CAPI20_GET_SERIAL_NUMBER(CtrlNr, serial_number);
+	CAPI20_GET_SERIAL_NUMBER(CtrlNr, (unsigned char *)serial_number);
 	memset(serial_number + strlen(serial_number), 0, sizeof(serial_number) - strlen(serial_number));
 
 	p = retval;
@@ -457,7 +458,7 @@ hdl_RCAPI_GET_MANUFACTURER_REQ(struct capi_message *msg) {
 
 	structure	retstruct;
 	char		retval [80];
-	char		manufacturer [64] = {0,};
+	char	manufacturer [64] = {0,};
 
 	log(5, "RCAPI_GET_MANUFACTURER_REQ\n");
 
@@ -465,7 +466,7 @@ hdl_RCAPI_GET_MANUFACTURER_REQ(struct capi_message *msg) {
 		CtrlNr = get_dword(&p);
 	}
 
-	CAPI20_GET_MANUFACTURER(CtrlNr, manufacturer);
+	CAPI20_GET_MANUFACTURER(CtrlNr, (unsigned char *)manufacturer);
 
 	p = retval;
 	put_struct(&p, 64, manufacturer);
@@ -492,7 +493,7 @@ hdl_RCAPI_GET_VERSION_REQ(struct capi_message *msg) {
 		CtrlNr = get_dword(&p);
 	}
 
-	CAPI20_GET_VERSION(CtrlNr, version);
+	CAPI20_GET_VERSION(CtrlNr, (unsigned char *)version);
 	
 	p = retval;
 	put_struct(&p, 64, version);
@@ -528,14 +529,14 @@ hdl_RCAPI_GET_PROFILE_REQ(struct capi_message *msg) {
 	if (new_controller) {
 		if (CtrlNr != 0) {
 		log(5, "\tNew CtrlNr: %d\n", new_controller);
-			*(unsigned short *)retval = CAPI20_GET_PROFILE(new_controller, retval+2); 
+			*(unsigned short *)retval = CAPI20_GET_PROFILE(new_controller, (unsigned char *)(retval+2)); 
 		} else {
 			log(5, "\tlie: we only have one controller\n");
 			p = retval+2;
 			put_word(&p, 1);
 		}
 	} else {
-		*(unsigned short *)retval = CAPI20_GET_PROFILE(CtrlNr, retval+2); 
+		*(unsigned short *)retval = CAPI20_GET_PROFILE(CtrlNr, (unsigned char *)(retval+2)); 
 	}
 
 	retstruct.len = 66;
