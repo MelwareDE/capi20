@@ -980,7 +980,7 @@ char *capi_cmsg2str(_cmsg * cmsg)
 	p[0] = 0;
 	cmsg->l = 8;
 	cmsg->p = 0;
-	bufprint("%s ID=%03d #0x%04x LEN=%04d\n",
+	bufprint("%-26s ID=%03d #0x%04x LEN=%04d\n",
 		 mnames[command_2_index(cmsg->Command, cmsg->Subcommand)],
 		 ((_cword *) cmsg->m)[1],
 		 ((_cword *) cmsg->m)[3],
