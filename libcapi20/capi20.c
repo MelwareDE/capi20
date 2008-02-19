@@ -296,7 +296,7 @@ static void write_capi_trace(int send, unsigned char *buf, int length, int datam
 	if (tracelevel < (datamsg + 1))
 		return;
 
-	fd = open(tracefile, O_WRONLY | O_CREAT | O_APPEND | O_NONBLOCK, 0644);
+	fd = open(tracefile, O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (fd >= 0) {
 		ltime = (_cdword)time(NULL);
 		capimsg_setu16(header, 0, length + sizeof(header));
