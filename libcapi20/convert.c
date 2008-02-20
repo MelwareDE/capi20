@@ -888,6 +888,10 @@ static void printstruct(_cbyte * m)
 
 static void protocol_message_2_pars(_cmsg * cmsg, int level)
 {
+	_cword iw;
+	_cdword idw;
+	_cqword iq;
+
 	for (; TYP != _CEND; cmsg->p++) {
 		int slen = 29 + 3 - level;
 		int i;
@@ -902,15 +906,18 @@ static void protocol_message_2_pars(_cmsg * cmsg, int level)
 			cmsg->l++;
 			break;
 		case _CWORD:
-			bufprint("%-*s = 0x%x\n", slen, NAME, *(_cword *) (cmsg->m + cmsg->l));
+			wordTLcpy(&iw, (cmsg->m + cmsg->l));
+			bufprint("%-*s = 0x%x\n", slen, NAME, iw);
 			cmsg->l += 2;
 			break;
 		case _CDWORD:
-			bufprint("%-*s = 0x%lx\n", slen, NAME, *(_cdword *) (cmsg->m + cmsg->l));
+			dwordTLcpy(&idw, (cmsg->m + cmsg->l));
+			bufprint("%-*s = 0x%lx\n", slen, NAME, idw);
 			cmsg->l += 4;
 			break;
 		case _CQWORD:
-			bufprint("%-*s = 0x%llx\n", slen, NAME, *(_cqword *) (cmsg->m + cmsg->l));
+			qwordTLcpy(&iq, (cmsg->m + cmsg->l));
+			bufprint("%-*s = 0x%llx\n", slen, NAME, iq);
 			cmsg->l += 4;
 			break;
 		case _CSTRUCT:
@@ -952,10 +959,10 @@ static void protocol_message_2_pars(_cmsg * cmsg, int level)
 /*-------------------------------------------------------*/
 char *capi_message2str(_cbyte * msg)
 {
-
 	_cmsg cmsg;
 	p = buf;
 	p[0] = 0;
+	_cword id, msgnum, len;
 
 	cmsg.m = msg;
 	cmsg.l = 8;
@@ -964,11 +971,13 @@ char *capi_message2str(_cbyte * msg)
 	byteTRcpy(cmsg.m + 5, &cmsg.Subcommand);
 	cmsg.par = cpars[command_2_index(cmsg.Command, cmsg.Subcommand)];
 
+	wordTLcpy(&id, &msg[2]);
+	wordTLcpy(&msgnum, &msg[6]);
+	wordTLcpy(&len, &msg[0]);
+
 	bufprint("%-26s ID=%03d #0x%04x LEN=%04d\n",
 		 mnames[command_2_index(cmsg.Command, cmsg.Subcommand)],
-		 ((unsigned short *) msg)[1],
-		 ((unsigned short *) msg)[3],
-		 ((unsigned short *) msg)[0]);
+		 id, msgnum, len);
 
 	protocol_message_2_pars(&cmsg, 1);
 	return buf;
@@ -976,15 +985,21 @@ char *capi_message2str(_cbyte * msg)
 
 char *capi_cmsg2str(_cmsg * cmsg)
 {
+	_cword id, msgnum, len;
+
 	p = buf;
 	p[0] = 0;
 	cmsg->l = 8;
 	cmsg->p = 0;
+
+	wordTLcpy(&id, &cmsg->m[2]);
+	wordTLcpy(&msgnum, &cmsg->m[6]);
+	wordTLcpy(&len, &cmsg->m[0]);
+
 	bufprint("%-26s ID=%03d #0x%04x LEN=%04d\n",
 		 mnames[command_2_index(cmsg->Command, cmsg->Subcommand)],
-		 ((_cword *) cmsg->m)[1],
-		 ((_cword *) cmsg->m)[3],
-		 ((_cword *) cmsg->m)[0]);
+		 id, msgnum, len);
+
 	protocol_message_2_pars(cmsg, 1);
 	return buf;
 }
