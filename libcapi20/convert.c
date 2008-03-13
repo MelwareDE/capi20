@@ -519,7 +519,7 @@ static void pars_2_message(_cmsg * cmsg)
 /*----- Metastruktur wird composed -----*/
 			else {
 				unsigned _l = cmsg->l;
-				unsigned _ls;
+				_cword _ls;
 				cmsg->l++;
 				cmsg->p++;
 				pars_2_message(cmsg);

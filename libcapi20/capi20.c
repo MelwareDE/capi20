@@ -17,6 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <assert.h>
 #define _LINUX_LIST_H
 #include <linux/capi.h>
@@ -55,9 +56,9 @@ static int remote_capi;
 static char *globalconfigfilename = "/etc/capi20.conf";
 static char *userconfigfilename = ".capi20rc";
 static unsigned short int port;
-static unsigned char hostname[1024];
+static char hostname[1024];
 static int tracelevel;
-static unsigned char *tracefile;
+static char *tracefile;
 
 /* REMOTE-CAPI commands */
  
@@ -74,13 +75,13 @@ static unsigned char *tracefile;
 #define RCAPI_AUTH_USER_REQ                     CAPICMD(0xff, 0x00)
 #define RCAPI_AUTH_USER_CONF                    CAPICMD(0xff, 0x01)
 
-static char *skip_whitespace(unsigned char *s)
+static char *skip_whitespace(char *s)
 {
 	while (*s && isspace(*s)) s++;
 		return s;
 }
 
-static char *skip_nonwhitespace(unsigned char *s)
+static char *skip_nonwhitespace(char *s)
 {
 	while (*s && !isspace(*s)) s++;
 		return s;
@@ -102,10 +103,12 @@ static unsigned short get_netword(unsigned char **p)
 	return((get_byte(p) << 8) | get_byte(p));
 }
 
+#if 0
 static unsigned int get_dword(unsigned char **p)
 {
 	return(get_word(p) | (get_word(p) << 16));
 }
+#endif
   
 static unsigned char *put_byte(unsigned char **p, _cbyte val)
 {
@@ -143,7 +146,7 @@ static int read_config(void)
 {
 	FILE *fp = NULL;
 	char *s, *t;
-	unsigned char buf[1024];
+	char buf[1024];
 
 	if ((s = getenv("HOME")) != NULL) {
 		strcpy(buf, s);
@@ -543,7 +546,7 @@ static void cleanup_buffers_for_plci(unsigned char applid, unsigned plci)
 	for (i = 0; i < ap->maxbufs; i++) {
 		if (ap->buffers[i].used) {
 			assert(ap->buffers[i].ncci != 0);
-			if (ap->buffers[i].ncci & 0xffff == plci) {
+			if ((ap->buffers[i].ncci & 0xffff) == plci) {
 				return_buffer(applid, i);
 			}
 		}
