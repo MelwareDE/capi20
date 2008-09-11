@@ -201,7 +201,9 @@ int main(int argc, char **argv)
 	}
 
        FACILITY_REQ_HEADER(&cmsg, ApplId, MsgId++, i);
-       cmsg.FacilitySelector = 0x0003;
+       s = (unsigned char *) &cmsg.FacilitySelector;
+       s[0] = 0x03;
+       s[1] = 0x00;
        cmsg.FacilityRequestParameter = (unsigned char *)"\x03""\x00\x00""\x00"; /* GetSupportedServices */
 
        err = CAPI_PUT_CMSG(&cmsg);
