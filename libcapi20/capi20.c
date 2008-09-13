@@ -729,8 +729,7 @@ capi20_put_message (unsigned ApplID, unsigned char *Msg)
 					dataptr = Msg + len; /* Assume data after message */
 				}
 			} else {
-				u_int32_t data;
-				memcpy(&data,Msg+12, sizeof(u_int32_t));
+				u_int32_t data = (Msg[12] | (Msg[13] << 8) | (Msg[14] << 16) | (Msg[15] << 24));
 				if (data != 0) {
 					dataptr = (void *)(unsigned long)data;
 				} else {
