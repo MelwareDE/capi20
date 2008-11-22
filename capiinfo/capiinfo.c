@@ -40,6 +40,8 @@ struct bittext goptions[] = {
 /*  3 */ { 0x0008, "DTMF supported" },
 /*  4 */ { 0x0010, "Supplementary Services supported" },
 /*  5 */ { 0x0020, "channel allocation supported (leased lines)" },
+/*  6 */ { 0x0040, "Parameter b-channel operation supported" },
+/*  7 */ { 0x0080, "Line Interconnect supported" },
  { 0, 0 }
 };
 
