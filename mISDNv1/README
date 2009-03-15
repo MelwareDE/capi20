@@ -1,0 +1,11 @@
+   mISDN v1 with NT-mode for CAPI
+===================================
+
+Modifications from mISDN v1 to support NT-mode in
+mISDN kernel modules for the use with CAPI 2.0 interface
+e.g. chan_capi for Asterisk.
+
+Copyright 2008-2009 Cytronics & Melware <armin@melware.de>
+
+------------------------------------------------------------
+
