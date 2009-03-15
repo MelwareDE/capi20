@@ -9,3 +9,24 @@ Copyright 2008-2009 Cytronics & Melware <armin@melware.de>
 
 ------------------------------------------------------------
 
+To build the modules use
+  make
+or with a special kernel directory
+  make KDIR=/usr/src/linux-headers-2.6.22-16-server
+
+To clean, use
+  make KDIR=/usr/src/linux-headers-2.6.22-16-server clean
+
+
+Status:
+-------
+This mISDN v1 respository is meant for the use with CAPI
+applications (like chan_capi for Asterisk) only!
+
+Currently the hfc_multi driver is adapted only. Other drivers
+may need some modifications to work with NT-mode (if the hardware
+supports it).
+
+hfc_multi also supports basic LineInterconnect (native bridge on hardware)
+when used with chan_capi.
+

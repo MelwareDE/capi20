@@ -29,4 +29,5 @@ $(HERE)/mISDN/linux:
 clean:
 	make -C $(KDIR) M=$(HERE)/mISDN clean
 	rm -f $(HERE)/mISDN/linux
+	rm -f $(HERE)/mISDN/Module.symvers
 
