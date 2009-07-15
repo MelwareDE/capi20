@@ -73,7 +73,7 @@ static inline struct echo_can_state
 	} else {
 		printk(KERN_ERR
 		    "echo_can_create error: kmalloc failed "
-		    "(requested %ld bytes)\n",
+		    "(requested %u bytes)\n",
 		    sizeof(struct echo_can_state));
 	}
 

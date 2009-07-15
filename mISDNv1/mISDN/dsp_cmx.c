@@ -1138,7 +1138,11 @@ dsp_cmx_receive(dsp_t *dsp, struct sk_buff *skb)
 	 * also add delay if requested by PH_SIGNAL
 	 */
 	if (dsp->rx_W < 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+ 		if (dsp->features.unclocked) {
+#else
 		if (dsp->features.has_jitter) {
+#endif
 			dsp->rx_R = (hh->dinfo & CMX_BUFF_MASK);
 			dsp->rx_W = (dsp->rx_R+dsp->cmx_delay) & CMX_BUFF_MASK;
 		} else {
@@ -1147,7 +1151,11 @@ dsp_cmx_receive(dsp_t *dsp, struct sk_buff *skb)
 		}
 	}
 	/* if frame contains time code, write directly */
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+ 	if (dsp->features.unclocked) {
+ #else
 	if (dsp->features.has_jitter) {
+ #endif
 		dsp->rx_W = (hh->dinfo & CMX_BUFF_MASK);
 		if (dsp_debug & DEBUG_DSP_CMX)
 		printk(KERN_DEBUG "%s %08x\n", dsp->inst.name, hh->dinfo);

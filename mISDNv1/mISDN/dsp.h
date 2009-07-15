@@ -8,6 +8,9 @@
  * of the GNU General Public License, incorporated herein by reference.
  *
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/mISDNdsp.h>
+#endif
 
 #define DEBUG_DSP_MGR		0x0001
 #define DEBUG_DSP_CORE		0x0002
@@ -156,16 +159,18 @@ typedef struct _tone_t {
  * general stuff *
  *****************/
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 struct dsp_features {
-	int		hfc_id; /* unique id to identify the chip (or -1) */
-	int		hfc_dtmf; /* set if HFCmulti card supports dtmf */
-	int		hfc_loops; /* set if card supports tone loops */
-	int		hfc_echocanhw; /* set if card supports echocancelation*/
-	int		pcm_id; /* unique id to identify the pcm bus (or -1) */
-	int		pcm_slots; /* number of slots on the pcm bus */
-	int		pcm_banks; /* number of IO banks of pcm bus */
-	int		has_jitter; /* data is jittered and unsorted */
+ 	int		hfc_id;		// unique id to identify the chip (or -1) 
+ 	int		hfc_dtmf;	// set if HFCmulti card supports dtmf 
+ 	int		hfc_loops;	// set if card supports tone loops 
+ 	int		hfc_echocanhw;	// set if card supports echocancelation
+ 	int		pcm_id;		// unique id to identify the pcm bus (or -1) 
+ 	int		pcm_slots;	// number of slots on the pcm bus 
+ 	int		pcm_banks;	// number of IO banks of pcm bus 
+ 	int		has_jitter;	// data is jittered and unsorted 
 };		
+#endif
 
 typedef struct _dsp {
 	struct list_head list;
@@ -199,7 +204,7 @@ typedef struct _dsp {
 	int		tx_data; /* enables tx-data of CMX to upper layer */
 
 	/* hardware stuff */
-	struct dsp_features features;
+ 	struct dsp_features	features;
 	int		pcm_slot_rx; /* current PCM slot (or -1) */
 	int		pcm_bank_rx;
 	int		pcm_slot_tx;

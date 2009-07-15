@@ -787,7 +787,11 @@ struct _mISDNobject {
 	struct list_head	ilist;
 	spinlock_t		lock;
 	struct module		*owner;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	struct device       class_dev;
+#else
 	struct class_device	class_dev;
+#endif
 };
 
 #ifdef OBSOLETE
@@ -820,7 +824,11 @@ struct _mISDNinstance {
 	mISDNinstance_t		*parent;
 	if_func_t		*function;
 	spinlock_t		*hwlock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	struct device           class_dev;
+#else
 	struct class_device	class_dev;
+#endif
 };
 
 #ifdef OBSOLETE
@@ -858,7 +866,11 @@ struct _mISDNstack {
 	mISDNstack_t		*clone;
 	mISDNstack_t		*parent;
 	struct list_head	childlist;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	struct device           class_dev;
+#else
 	struct class_device	class_dev;
+#endif
 	/* temporary use */
 	mISDN_pid_t		new_pid;
 };

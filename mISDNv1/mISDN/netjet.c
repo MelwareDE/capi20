@@ -1666,7 +1666,11 @@ setup_instance (netjet_t *card)
 	card->dch.debug = debug;
 	spin_lock_init(&card->lock);
 	card->dch.inst.hwlock = &card->lock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	card->dch.inst.class_dev.parent = &card->pdev->dev;
+#else
 	card->dch.inst.class_dev.dev = &card->pdev->dev;
+#endif
 	card->dch.inst.pid.layermask = ISDN_LAYER(0);
 	card->dch.inst.pid.protocol[0] = ISDN_PID_L0_TE_S0;
 	mISDN_init_instance(&card->dch.inst, &netjet_mISDN, card, mISDN_ISAC_l1hw);
@@ -1678,7 +1682,11 @@ setup_instance (netjet_t *card)
 		mISDN_init_instance(&card->bch[i].inst, &netjet_mISDN, card, tiger_l2l1B);
 		card->bch[i].inst.pid.layermask = ISDN_LAYER(0);
 		card->bch[i].inst.hwlock = &card->lock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		card->bch[i].inst.class_dev.parent = &card->pdev->dev;
+#else
 		card->bch[i].inst.class_dev.dev = &card->pdev->dev;
+#endif
 		card->bch[i].debug = debug;
 		sprintf(card->bch[i].inst.name, "%s B%d", card->dch.inst.name, i+1);
 		mISDN_initchannel(&card->bch[i], MSK_INIT_BCHANNEL, MAX_DATA_MEM);

@@ -163,15 +163,23 @@ static void dt_run (void)
 }
 
 /* sysfs */
-static void dt_class_release (struct class_device *dev)
-{}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+static void dt_class_release (struct device *dev) {}
+#else
+static void dt_class_release (struct class_device *dev) {}
+#endif
 
 static struct class dt_class = {
 	.name = "mISDN-debugtool",
 #ifndef CLASS_WITHOUT_OWNER
 	.owner = THIS_MODULE,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	.dev_release = &dt_class_release,
+#else
 	.release = &dt_class_release,
+#endif
 };
 
 static ssize_t attr_show_enabled (struct class *class, char *buf)
@@ -235,7 +243,11 @@ void __exit dt_exit(void)
 
 	if (thread) {
 		lock_kernel();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		ret = kill_pid(find_pid_ns(thread->pid, &init_pid_ns), SIGKILL, 1);
+#else
 		ret = kill_proc(thread->pid, SIGKILL, 1);
+#endif
 		unlock_kernel();
 		if (ret < 0)
 			printk(KERN_INFO MODULE_NAME ": Unknown error (%d) while trying to terminate kernel thread!\n", -ret);

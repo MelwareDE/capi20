@@ -91,6 +91,22 @@ static void process_rx (void *p, u8 *data, int len)
 	dsp_cancel_rx(p, data, len);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static struct mISDN_dsp_element_arg args[] = {
+        { "deftaps", "128", "Set the number of taps of cancellation." },
+        { "training", "0", "Enable echotraining (0: disabled, 1: enabled)." },
+};
+
+static struct mISDN_dsp_element dsp_octwareec = {
+        .name = "octwareec",
+        .new = new,
+        .free = free,
+        .process_tx = process_tx,
+        .process_rx = process_rx,
+        .num_args = sizeof(args) / sizeof(struct mISDN_dsp_element_arg),
+        .args = args,
+};
+#else
 static mISDN_dsp_element_arg_t args[] = {
 	{ "deftaps", "128", "Set the number of taps of cancellation." },
 	{ "training", "0", "Enable echotraining (0: disabled, 1: enabled)." },
@@ -105,6 +121,7 @@ static mISDN_dsp_element_t dsp_octwareec = {
 	.num_args = sizeof(args) / sizeof(mISDN_dsp_element_arg_t),
 	.args = args,
 };
+#endif
 
 #ifdef MODULE
 static int __init dsp_octwareec_init (void)

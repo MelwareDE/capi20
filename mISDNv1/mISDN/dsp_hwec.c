@@ -31,6 +31,23 @@
 #include "dsp.h"
 #include "helper.h"
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static struct mISDN_dsp_element_arg args[] = {
+        { "deftaps", "128", "Set the number of taps of cancellation." },
+};
+
+static struct mISDN_dsp_element dsp_hwec_p = {
+        .name = "hwec",
+        .new = NULL,
+        .free = NULL,
+        .process_tx = NULL,
+        .process_rx = NULL,
+        .num_args = sizeof(args) / sizeof(struct mISDN_dsp_element_arg),
+        .args = args,
+};
+struct mISDN_dsp_element *dsp_hwec = &dsp_hwec_p;
+
+#else
 static mISDN_dsp_element_arg_t args[] = {
 	{ "deftaps", "128", "Set the number of taps of cancellation." },
 };
@@ -45,6 +62,7 @@ static mISDN_dsp_element_t dsp_hwec_p = {
 	.args = args,
 };
 mISDN_dsp_element_t *dsp_hwec = &dsp_hwec_p;
+#endif
 
 void dsp_hwec_enable (dsp_t *dsp, const char *arg)
 {

@@ -242,6 +242,10 @@ static const PCI_ENTRY id_list[] =
 	 "HFC-4S OpenVox Card", 0, 4, 1, 2, 0},
 	{CCAG_VID, CCAG_VID, HFC4S_ID, 0xE884, VENDOR_CCD,
 	 "HFC-2S OpenVox Card", 0, 2, 1, 2, 0},
+ 	{CCAG_VID, CCAG_VID, HFC8S_ID, 0xE998, VENDOR_CCD,
+ 	    "HFC-8S OpenVox Card", 0, 8, 1, 8, 0, 0},
+  	{CCAG_VID, PRIM_VID, HFC4S_ID, 0x1234, VENDOR_PRIM,
+  	    "HFC-2S Primux Card", 0, 2, 0, 0, 0, 0},
 	{0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0},
 };
 
@@ -1559,18 +1563,17 @@ next_frame:
 		HFC_outb_(hc, R_INC_RES_FIFO, V_INC_F);
 		HFC_wait_(hc);
 	}
-	// check for next frame
-	if (chan->tx_skb) {
-		dev_kfree_skb(chan->tx_skb);
-	} 
+ 	/* free current skb */
+ 	dev_kfree_skb(chan->tx_skb);
+ 	chan->tx_skb = NULL;
 
 	if (test_bit(FLG_TX_NEXT, &chan->Flags)) {
 		chan->tx_skb = chan->next_skb;
 		if (chan->tx_skb) {
 			mISDN_head_t	*hh = mISDN_HEAD_P(chan->tx_skb);
 			chan->next_skb = NULL;
-			test_and_clear_bit(FLG_TX_NEXT, &chan->Flags);
 			chan->tx_idx = 0;
+ 			test_and_clear_bit(FLG_TX_NEXT, &chan->Flags);
 			len = chan->tx_skb->len;
 			queue_ch_frame(chan, CONFIRM, hh->dinfo, NULL);
 			goto next_frame;
@@ -1579,10 +1582,9 @@ next_frame:
 			printk(KERN_WARNING "%s: tx irq TX_NEXT without skb (dch ch=%d)\n",
 				__FUNCTION__, ch);
 		}
-	} else
-		chan->tx_skb = NULL;
+	}
 	test_and_clear_bit(FLG_TX_BUSY, &chan->Flags);
-	chan->tx_idx = 0;
+
 	/* now we have no more data, so in case of transparent,
 	 * we set the last byte in fifo to 'silence' in case we will get
 	 * no more data at all. this prevents sending an undefined value.
@@ -4076,7 +4078,11 @@ static int __devinit hfcpci_probe(struct pci_dev *pdev, const struct pci_device_
 		//chan->debug = debug;
 		chan->inst.obj = &HFCM_obj;
 		chan->inst.hwlock = &hc->lock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		chan->inst.class_dev.parent = &pdev->dev;
+#else
 		chan->inst.class_dev.dev = &pdev->dev;
+#endif
 		mISDN_init_instance(&chan->inst, &HFCM_obj, hc, hfcmulti_l2l1);
 		chan->inst.pid.layermask = ISDN_LAYER(0);
 		sprintf(chan->inst.name, "HFCm%d/%d", HFC_idx+1, pt+1);
@@ -4104,7 +4110,11 @@ static int __devinit hfcpci_probe(struct pci_dev *pdev, const struct pci_device_
 			mISDN_init_instance(&chan->inst, &HFCM_obj, hc, hfcmulti_l2l1);
 			chan->inst.pid.layermask = ISDN_LAYER(0);
 			chan->inst.hwlock = &hc->lock;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+ 			chan->inst.class_dev.parent = &pdev->dev;
+ #else
 			chan->inst.class_dev.dev = &pdev->dev;
+ #endif
 			//bch->debug = debug;
 			sprintf(chan->inst.name, "%s B%d",
 				hc->chan[ch].ch->inst.name, i+1);
@@ -4467,6 +4477,10 @@ static struct pci_device_id hfmultipci_ids[] __devinitdata = {
 	{ CCAG_VID, 0x08B4   , CCAG_VID, 0xB558, 0, 0, 0 }, //4S junghanns 2.0   ucpbx 0xB550 -> 0xB558
 	{ CCAG_VID, 0x08B4   , CCAG_VID, 0xE884, 0, 0, 0 }, //2S OpenVox B200P
 	{ CCAG_VID, 0x08B4   , CCAG_VID, 0xE888, 0, 0, 0 }, //4S OpenVox B400P
+  	    /* 4S OpenVox B400P */
+  	{ CCAG_VID, 0x08B4   , PRIM_VID, 0x1234, 0, 0, 0 }, /* 2S Primux2 */
+ 	    /* 4S OpenVox B800P */
+ 	{ CCAG_VID, 0x16B8   , CCAG_VID, 0xE998, 0, 0, 0 },
 	
 	/** Cards with HFC-8S Chip**/
 	{ CCAG_VID, 0x16B8   , CCAG_VID, 0xB562, 0, 0, 0 }, //BN8S
@@ -4509,9 +4523,12 @@ static struct pci_driver hfcmultipci_driver = {
 	id_table: hfmultipci_ids,
 };
 
-static void __exit
-HFCmulti_cleanup(void)
-{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+static void HFCmulti_cleanup(void) {
+#else
+static void __exit HFCmulti_cleanup(void) {
+#endif
+  	hfc_multi_t *hc, *next;
 	hfc_multi_t *hc,*next;
 	int err;
 

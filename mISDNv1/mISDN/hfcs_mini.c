@@ -1252,7 +1252,11 @@ init_mISDN_channels(hfcsmini_hw * hw)
 	hw->chan[ch].debug = debug;
 	hw->chan[ch].inst.obj = &hw_mISDNObj;
 	hw->chan[ch].inst.hwlock = &hw->mlock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	hw->chan[ch].inst.class_dev.parent = &hw->pdev->dev;
+#else
 	hw->chan[ch].inst.class_dev.dev = &hw->pdev->dev;
+#endif
 	mISDN_init_instance(&hw->chan[ch].inst, &hw_mISDNObj, hw,
 	    hfcsmini_l2l1);
 
@@ -1279,7 +1283,11 @@ init_mISDN_channels(hfcsmini_hw * hw)
 		    hfcsmini_l2l1);
 		hw->chan[b].inst.pid.layermask = ISDN_LAYER(0);
 		hw->chan[b].inst.hwlock = &hw->mlock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		hw->chan[b].inst.class_dev.parent = &hw->pdev->dev;
+#else
 		hw->chan[b].inst.class_dev.dev = &hw->pdev->dev;
+#endif
 
 		sprintf(hw->chan[b].inst.name, "%s B%d",
 			hw->chan[ch].inst.name, b + 1);

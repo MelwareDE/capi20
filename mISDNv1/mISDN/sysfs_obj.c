@@ -12,27 +12,44 @@
 
 #define to_mISDNobject(d) container_of(d, mISDNobject_t, class_dev)
 
-static ssize_t show_obj_name(struct class_device *class_dev, char *buf)
-{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+static ssize_t show_obj_name(struct device *class_dev, struct device_attribute *attr, char *buf) {
+        mISDNobject_t *obj = to_mISDNobject(class_dev);
+        return sprintf(buf, "%s\n", obj->name);
+}
+static DEVICE_ATTR(name, S_IRUGO, show_obj_name, NULL);
+
+static ssize_t show_obj_id(struct device *class_dev, struct device_attribute *attr, char *buf) {
+        mISDNobject_t *obj = to_mISDNobject(class_dev);
+        return sprintf(buf, "%d\n", obj->id);
+}
+static DEVICE_ATTR(id, S_IRUGO, show_obj_id, NULL);
+
+static ssize_t show_obj_refcnt(struct device *class_dev, struct device_attribute *attr, char *buf) {
+        mISDNobject_t *obj = to_mISDNobject(class_dev);
+        return sprintf(buf, "%d\n", obj->refcnt);
+}
+static DEVICE_ATTR(refcnt, S_IRUGO, show_obj_refcnt, NULL);
+
+#else
+static ssize_t show_obj_name(struct class_device *class_dev, char *buf) {
 	mISDNobject_t *obj = to_mISDNobject(class_dev);
 	return sprintf(buf, "%s\n", obj->name);
 }
-
 static CLASS_DEVICE_ATTR(name, S_IRUGO, show_obj_name, NULL);
 
-static ssize_t show_obj_id(struct class_device *class_dev, char *buf)
-{
+static ssize_t show_obj_id(struct class_device *class_dev, char *buf) {
 	mISDNobject_t *obj = to_mISDNobject(class_dev);
 	return sprintf(buf, "%d\n", obj->id);
 }
 static CLASS_DEVICE_ATTR(id, S_IRUGO, show_obj_id, NULL);
 
-static ssize_t show_obj_refcnt(struct class_device *class_dev, char *buf)
-{
+static ssize_t show_obj_refcnt(struct class_device *class_dev, char *buf) {
 	mISDNobject_t *obj = to_mISDNobject(class_dev);
 	return sprintf(buf, "%d\n", obj->refcnt);
 }
 static CLASS_DEVICE_ATTR(refcnt, S_IRUGO, show_obj_refcnt, NULL);
+#endif
 
 ssize_t mISDN_show_pid_protocol(mISDN_pid_t *pid, char *buf)
 {
@@ -77,7 +94,11 @@ MISDN_PROTO(mISDNobject, BPROTO, S_IRUGO);
 MISDN_PROTO(mISDNobject, DPROTO, S_IRUGO);
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+static void release_mISDN_obj(struct device *dev)
+#else
 static void release_mISDN_obj(struct class_device *dev)
+#endif
 {
 #ifdef SYSFS_SUPPORT
 	mISDNobject_t	*obj = to_mISDNobject(dev);
@@ -101,7 +122,11 @@ static struct class obj_dev_class = {
 #ifndef CLASS_WITHOUT_OWNER
 	.owner		= THIS_MODULE,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	.dev_release        = &release_mISDN_obj,
+#else
 	.release	= &release_mISDN_obj,
+#endif
 };
 
 int
@@ -109,7 +134,24 @@ mISDN_register_sysfs_obj(mISDNobject_t *obj) {
 	int	err;
 
 	obj->class_dev.class = &obj_dev_class;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	snprintf(obj->class_dev.bus_id, BUS_ID_SIZE, "obj-%d", obj->id);
+	
+	err = device_register(&obj->class_dev);
+        if (err)
+                goto out;
+        err = device_create_file(&obj->class_dev, &dev_attr_id);
+        if (err)
+                goto out;
+        err = device_create_file(&obj->class_dev, &dev_attr_name);
+        if (err)
+                goto out;
+        err = device_create_file(&obj->class_dev, &dev_attr_refcnt);
+        if (err)
+                goto out;
+#else
 	snprintf(obj->class_dev.class_id, BUS_ID_SIZE, "obj-%d", obj->id);
+	
 	err = class_device_register(&obj->class_dev);
 	if (err)
 		goto out;
@@ -125,6 +167,7 @@ mISDN_register_sysfs_obj(mISDNobject_t *obj) {
 	    &class_device_attr_refcnt);
 	if (err)
 		goto out;
+#endif
 #ifdef SYSFS_SUPPORT
 	err = sysfs_create_group(&obj->class_dev.kobj, &BPROTO_group);
 	if (err)

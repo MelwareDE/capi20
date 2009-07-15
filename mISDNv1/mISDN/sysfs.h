@@ -26,7 +26,57 @@ static inline ssize_t show_pid_maxplen(mISDN_pid_t *pid, char *buf)
 {
 	return sprintf(buf, "%d\n", pid->maxplen);
 }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#define MISDN_PROTO(_type, _name, _mode) \
+static ssize_t show_protocol_##_name(struct device *class_dev, struct device_attribute *attr, char *buf) \
+{ \
+        _type##_t       *p = to_##_type(class_dev); \
+        return(mISDN_show_pid_protocol(&p->_name, buf)); \
+} \
+struct device_attribute _type##_attr_protocol_##_name = \
+        __ATTR(protocol,_mode,show_protocol_##_name, NULL); \
+static ssize_t show_parameter_##_name(struct device *class_dev, struct device_attribute *attr, char *buf) \
+{ \
+        _type##_t       *p = to_##_type(class_dev); \
+        return(mISDN_show_pid_parameter(&p->_name, buf)); \
+} \
+struct device_attribute _type##_attr_parameter_##_name = \
+        __ATTR(parameter,_mode,show_parameter_##_name, NULL); \
+static ssize_t show_layermask_##_name(struct device *class_dev, struct device_attribute *attr, char *buf) \
+{ \
+        _type##_t       *p = to_##_type(class_dev); \
+        return(show_pid_layermask(&p->_name, buf)); \
+} \
+struct device_attribute _type##_attr_layermask_##_name = \
+        __ATTR(layermask,_mode,show_layermask_##_name, NULL); \
+static ssize_t show_global_##_name(struct device *class_dev, struct device_attribute *attr, char *buf) \
+{ \
+        _type##_t       *p = to_##_type(class_dev); \
+        return(show_pid_global(&p->_name, buf)); \
+} \
+struct device_attribute _type##_attr_global_##_name = \
+        __ATTR(global,_mode,show_global_##_name, NULL); \
+static ssize_t show_maxplen_##_name(struct device *class_dev, struct device_attribute *attr, char *buf) \
+{ \
+        _type##_t       *p = to_##_type(class_dev); \
+        return(show_pid_maxplen(&p->_name, buf)); \
+} \
+struct device_attribute _type##_attr_maxplen_##_name = \
+        __ATTR(maxplen,_mode,show_maxplen_##_name, NULL); \
+static struct attribute *attr_##_name[] = { \
+        &_type##_attr_global_##_name.attr, \
+        &_type##_attr_layermask_##_name.attr, \
+        &_type##_attr_maxplen_##_name.attr, \
+        &_type##_attr_parameter_##_name.attr, \
+        &_type##_attr_protocol_##_name.attr, \
+        NULL \
+}; \
+static struct attribute_group _name##_group = { \
+        .name  = __stringify(_name), \
+        .attrs  = attr_##_name, \
+}
 
+#else
 #define MISDN_PROTO(_type, _name, _mode) \
 static ssize_t show_protocol_##_name(struct class_device *class_dev, char *buf) \
 { \
@@ -75,3 +125,5 @@ static struct attribute_group _name##_group = { \
 	.name  = __stringify(_name), \
 	.attrs  = attr_##_name, \
 }
+#endif
+

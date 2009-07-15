@@ -36,21 +36,40 @@
 /* uncomment for debugging */
 /*#define PIPELINE_DEBUG*/
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+extern struct mISDN_dsp_element *dsp_hwec;
+#else
 extern mISDN_dsp_element_t *dsp_hwec;
+#endif
+
 extern void dsp_hwec_enable          (dsp_t *dsp, const char *arg);
 extern void dsp_hwec_disable         (dsp_t *dsp);
 extern int  dsp_hwec_init            (void);
 extern void dsp_hwec_exit            (void);
 
 typedef struct _dsp_pipeline_entry {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	struct mISDN_dsp_element *elem;
+#else
 	mISDN_dsp_element_t *elem;
+#endif
 	void                *p;
 	struct list_head     list;
 } dsp_pipeline_entry_t;
 
 typedef struct _dsp_element_entry {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	struct mISDN_dsp_element *elem;
+	struct device  dev;
+
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
 	mISDN_dsp_element_t *elem;
-	struct class_device  dev;
+	struct device dev;
+
+#else
+	mISDN_dsp_element_t *elem;
+	struct class_device dev;
+#endif
 	struct list_head     list;
 } dsp_element_entry_t;
 
@@ -58,41 +77,75 @@ static rwlock_t dsp_elements_lock;
 static LIST_HEAD(dsp_elements);
 
 /* sysfs */
-static void elements_class_release (struct class_device *dev)
-{}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+static void elements_release(struct device *dev) {}
+#else
+static void elements_class_release (struct class_device *dev) {}
+#endif
 
 static struct class elements_class = {
 	.name = "mISDN-dsp-elements",
 #ifndef CLASS_WITHOUT_OWNER
 	.owner = THIS_MODULE,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+	.dev_release = &elements_release,
+#else
 	.release = &elements_class_release,
+#endif
 };
 
-static ssize_t attr_show_args (struct class_device *dev, char *buf)
-{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static ssize_t attr_show_args (struct device *dev, struct device_attribute *attr, char *buf) {
+	struct mISDN_dsp_element *elem = dev_get_drvdata(dev);
+
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+static ssize_t attr_show_args (struct device *dev, struct device_attribute *attr, char *buf) {
+        mISDN_dsp_element_t *elem = dev_get_drvdata(dev);
+
+#else
+static ssize_t attr_show_args (struct class_device *dev, char *buf) {
 	mISDN_dsp_element_t *elem = class_get_devdata(dev);
+#endif
 	ssize_t len = 0;
 	int i = 0;
 
+#if LINUX_VERSION_CODE != KERNEL_VERSION(2, 6, 26)
 	*buf = 0;
-	for (; i < elem->num_args; ++i)
+#endif
+	for (i = 0; i < elem->num_args; ++i) {
 		len = sprintf(buf, "%sName:        %s\n%s%s%sDescription: %s\n\n", buf,
 					  elem->args[i].name,
 					  elem->args[i].def ? "Default:     " : "",
 					  elem->args[i].def ? elem->args[i].def : "",
 					  elem->args[i].def ? "\n" : "",
 					  elem->args[i].desc);
+	}
 
-	return len;
+	return(len);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static struct device_attribute element_attributes[] = {
+        __ATTR(args, 0444, attr_show_args, NULL),
+};
+
+int mISDN_dsp_element_register (struct mISDN_dsp_element *elem) {
+
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+static struct device_attribute element_attributes[] = {
+        __ATTR(args, 0444, attr_show_args, NULL),
+};
+
+int mISDN_dsp_element_register (mISDN_dsp_element_t *elem) {
+
+#else
 static struct class_device_attribute element_attributes[] = {
 	__ATTR(args, 0444, attr_show_args, NULL),
 };
 
-int mISDN_dsp_element_register (mISDN_dsp_element_t *elem)
-{
+int mISDN_dsp_element_register (mISDN_dsp_element_t *elem) {
+#endif
 	dsp_element_entry_t *entry;
 	u_long flags;
 	int re, i;
@@ -107,7 +160,19 @@ int mISDN_dsp_element_register (mISDN_dsp_element_t *elem)
 	entry->elem = elem;
 
 	entry->dev.class = &elements_class;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	dev_set_drvdata(&entry->dev, elem);
+	
+	snprintf(entry->dev.bus_id, BUS_ID_SIZE, elem->name);
+        if ((re = device_register(&entry->dev)))
+                goto err1;
+
+        for (i = 0; i < (sizeof(element_attributes) / sizeof(struct device_attribute)); ++i)
+                if ((re = device_create_file(&entry->dev, &element_attributes[i])))
+			goto err2;
+#else
 	class_set_devdata(&entry->dev, elem);
+
 	snprintf(entry->dev.class_id, BUS_ID_SIZE, elem->name);
 	if ((re = class_device_register(&entry->dev)))
 		goto err1;
@@ -115,6 +180,7 @@ int mISDN_dsp_element_register (mISDN_dsp_element_t *elem)
 	for (i = 0; i < (sizeof(element_attributes) / sizeof(struct class_device_attribute)); ++i)
 		if ((re = class_device_create_file(&entry->dev, &element_attributes[i])))
 			goto err2;
+#endif
 
 	write_lock_irqsave(&dsp_elements_lock, flags);
 	list_add_tail(&entry->list, &dsp_elements);
@@ -125,14 +191,22 @@ int mISDN_dsp_element_register (mISDN_dsp_element_t *elem)
 	return 0;
 
 err2:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+	device_unregister(&entry->dev);
+#else
 	class_device_unregister(&entry->dev);
+#endif
 err1:
 	kfree(entry);
 	return re;
 }
 
-void mISDN_dsp_element_unregister (mISDN_dsp_element_t *elem)
-{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+void mISDN_dsp_element_unregister (struct mISDN_dsp_element *elem) {
+
+#else
+void mISDN_dsp_element_unregister (mISDN_dsp_element_t *elem) {
+#endif
 	dsp_element_entry_t *entry, *n;
 	u_long flags;
 
@@ -145,7 +219,11 @@ void mISDN_dsp_element_unregister (mISDN_dsp_element_t *elem)
 		if (entry->elem == elem) {
 			list_del(&entry->list);
 			write_unlock_irqrestore(&dsp_elements_lock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+			device_unregister(&entry->dev);
+#else
 			class_device_unregister(&entry->dev);
+#endif
 			kfree(entry);
 			printk(KERN_DEBUG "%s: %s unregistered\n", __FUNCTION__, elem->name);
 			return;
@@ -241,7 +319,11 @@ int dsp_pipeline_build (dsp_pipeline_t *pipeline, const char *cfg)
 	char *dup, *tok, *name, *args;
 	dsp_element_entry_t *entry, *n;
 	dsp_pipeline_entry_t *pipeline_entry;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	struct mISDN_dsp_element *elem;
+#else
 	mISDN_dsp_element_t *elem;
+#endif
 	u_long elements_flags, pipeline_flags;
 
 	if (!pipeline)

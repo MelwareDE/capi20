@@ -703,8 +703,10 @@ mISDN_dec_usage(void)
 	struct modulelist *ml;
 	
 	read_lock(&mISDN_modules_lock);
-	list_for_each_entry(ml, &mISDN_modulelist, list)
-		module_put(ml->module);
+	list_for_each_entry(ml, &mISDN_modulelist, list) {
+ 		if (module_refcount(ml->module) > 0)
+			module_put(ml->module);
+	}
 	read_unlock(&mISDN_modules_lock);
 }
 
@@ -756,7 +758,11 @@ int mISDN_unregister(mISDNobject_t *obj) {
 	if (core_debug & DEBUG_CORE_FUNC)
 		printk(KERN_DEBUG "mISDN_unregister: mISDN_objectlist(%p<-%p->%p)\n",
 			mISDN_objectlist.prev, &mISDN_objectlist, mISDN_objectlist.next);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	device_unregister(&obj->class_dev);
+#else
 	class_device_unregister(&obj->class_dev);
+#endif
 	return(0);
 }
 

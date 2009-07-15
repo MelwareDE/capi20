@@ -2179,7 +2179,11 @@ setup_instance(hfc_pci_t *card)
 	card->dch.debug = debug;
 	spin_lock_init(&card->lock);
 	card->dch.inst.hwlock = &card->lock;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	card->dch.inst.class_dev.parent = &card->pdev->dev;
+#else
 	card->dch.inst.class_dev.dev = &card->pdev->dev;
+#endif
 	mISDN_init_instance(&card->dch.inst, &HFC_obj, card, hfcpci_l2l1);
 	card->dch.inst.pid.layermask = ISDN_LAYER(0);
 	sprintf(card->dch.inst.name, "HFC%d", HFC_cnt+1);
@@ -2290,7 +2294,11 @@ setup_instance(hfc_pci_t *card)
 	}
 	mISDN_ctrl(dst, MGR_STOPSTACK | REQUEST, NULL);
 	for (i = 0; i < 2; i++) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		card->bch[i].inst.class_dev.parent = &card->pdev->dev;
+#else
 		card->bch[i].inst.class_dev.dev = &card->pdev->dev;
+#endif
 		if ((err = mISDN_ctrl(dst, MGR_NEWSTACK | REQUEST,
 		    &card->bch[i].inst))) {
 			printk(KERN_ERR "MGR_ADDSTACK bchan error %d\n", err);

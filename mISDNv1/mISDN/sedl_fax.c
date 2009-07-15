@@ -26,10 +26,15 @@
  * the firmware onto the card.
  */
 
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/delay.h>
-#include <asm/semaphore.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+# include <linux/semaphore.h>
+#else
+# include <asm/semaphore.h>
+#endif
 #ifdef NEW_ISAPNP
 #include <linux/pnp.h>
 #else
@@ -680,7 +685,11 @@ static int __devinit setup_instance(sedl_fax *card)
 	card->dch.inst.hwlock = &card->lock;
 	card->dch.inst.pid.layermask = ISDN_LAYER(0);
 	card->dch.inst.pid.protocol[0] = ISDN_PID_L0_TE_S0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	card->dch.inst.class_dev.parent = dev;
+#else
 	card->dch.inst.class_dev.dev = dev;
+#endif
 	mISDN_init_instance(&card->dch.inst, &speedfax, card, mISDN_ISAC_l1hw);
 	sprintf(card->dch.inst.name, "SpeedFax%d", sedl_cnt+1);
 	mISDN_set_dchannel_pid(&pid, protocol[sedl_cnt], layermask[sedl_cnt]);
@@ -691,7 +700,11 @@ static int __devinit setup_instance(sedl_fax *card)
 		card->bch[i].inst.pid.layermask = ISDN_LAYER(0);
 		card->bch[i].inst.hwlock = &card->lock;
 		card->bch[i].debug = debug;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+		card->bch[i].inst.class_dev.parent = dev;
+#else
 		card->bch[i].inst.class_dev.dev = dev;
+#endif
 		sprintf(card->bch[i].inst.name, "%s B%d", card->dch.inst.name, i+1);
 		mISDN_initchannel(&card->bch[i], MSK_INIT_BCHANNEL, MAX_DATA_MEM);
 	}
