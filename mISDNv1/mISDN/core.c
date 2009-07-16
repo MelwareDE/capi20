@@ -775,6 +775,7 @@ mISDNInit(void)
 	init_MUTEX_LOCKED(&sem);
 
 	printk(KERN_INFO "Modular ISDN Stack core version (%s) revision (%s)\n", mISDN_core_version, mISDN_core_revision);
+	printk(KERN_INFO "  ISDN NTmode by Armin Schindler, Cytronics & Melware\n");
 	core_debug = debug;
 #ifdef MISDN_MEMDEBUG
 	err = __mid_init();

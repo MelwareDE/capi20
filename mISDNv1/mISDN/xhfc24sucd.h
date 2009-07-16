@@ -1,29 +1,29 @@
-/* xhfc24sucd.h
+ /* xhfc24sucd.h
  * XHFC-2S4U / XHFC-4SU register definitions
  * (C) 2007 Copyright Cologne Chip AG
  * (support@CologneChip.com)
  *
  * Dual-license
  * ------------
- * Cologne Chip AG, Eintrachtstr. 113, 50668 Koeln, Germany, provides this header 
+ * Cologne Chip AG, Eintrachtstr. 113, 50668 Koeln, Germany, provides this header
  * file (software) under a dual-license.
  * The licensee can choose from the following two licensing models:
  *   * For GPL (free) distributions, see the 'License - GPL'
  *   * For commercial distributions, see the 'License - Commercial'
  *
- * 
+ *
  * License - GPL
  * -------------
- * This software is free software; you can redistribute it and/or modify it under 
- * the terms of the GNU General Public License as published by the Free Software 
+ * This software is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful, but WITHOUT 
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+ * This software is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with 
- * this software; if not, write to the Free Software Foundation, Inc., 675 Mass 
+ * You should have received a copy of the GNU General Public License along with
+ * this software; if not, write to the Free Software Foundation, Inc., 675 Mass
  * Ave, Cambridge, MA 02139, USA.
  *
  *
@@ -35,22 +35,22 @@
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright notice, 
+ *     * Redistributions of source code must retain the above copyright notice,
  *       this list of conditions and the following disclaimer.
- *     * Redistributions of source code must mark all modifications explicitly as 
+ *     * Redistributions of source code must mark all modifications explicitly as
  *       such, if any are made.
- *     * For redistributing and use of this software in binary form, none of the 
+ *     * For redistributing and use of this software in binary form, none of the
  *       provisions above applies.
  *
- * This software is provided by Cologne Chip AG "as is" and any express or implied 
- * warranties, including, but not limited to, the implied warranties of 
- * merchantability and fitness for a particular purpose are disclaimed. In no event 
- * shall Cologne Chip AG be liable for any direct, indirect, incidental, special, 
- * exemplary, or consequential damages (including, but not limited to, procurement 
- * of substitute goods or services; loss of use, data, or profits; or business 
- * interruption) however caused and on any theory of liability, whether in contract, 
- * strict liability, or tort (including negligence or otherwise) arising in any way 
- * out of the use of this software, even if advised of the possibility of such 
+ * This software is provided by Cologne Chip AG "as is" and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed. In no event
+ * shall Cologne Chip AG be liable for any direct, indirect, incidental, special,
+ * exemplary, or consequential damages (including, but not limited to, procurement
+ * of substitute goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether in contract,
+ * strict liability, or tort (including negligence or otherwise) arising in any way
+ * out of the use of this software, even if advised of the possibility of such
  * damage.
  * __________________________________________________________________________________
  *
@@ -60,13 +60,13 @@
  *   Creator:       Genero 3.6
  *   Data base:     HFC XML 1.9 for XHFC-1SU, XHFC-2SU, XHFC-2S4U and XHFC-4SU
  *   Address range: 0x00 - 0xFF
- * 
+ *
  *   The information presented can not be considered as assured characteristics.
  *   Data can change without notice. Please check version numbers in case of doubt.
- * 
+ *
  *   For further information or questions please contact support@CologneChip.com
  * __________________________________________________________________________________
- * 
+ *
  *   WARNING: This file has been generated automatically and should not be
  *            changed to maintain compatibility with later versions.
  * __________________________________________________________________________________
@@ -302,6 +302,8 @@
 	#define SET_V_REV(R,V)  (R = (__u8)((R & (__u8)(M_REV ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_REV(R)    (__u8)((R & M_REV) >> 7)
 
+#define IDX_FIFO 0x00 // index value selecting this multi-register
+
 
 #define R_SLOT 0x10 // register address, write only
 	#define M_SL_DIR  0x01  // mask bit 0
@@ -482,6 +484,8 @@
 	#define SET_V_SH_SEL0(R,V)  (R = (__u8)((R & (__u8)(M_SH_SEL0 ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_SH_SEL0(R)    (__u8)((R & M_SH_SEL0) >> 7)
 
+#define IDX_SL_SEL0 0x00 // index value selecting this multi-register
+
 
 #define R_SL_SEL1 0x15 // register address, write only
 	#define M_SL_SEL1  0x7F  // mask bits 0..6
@@ -492,12 +496,15 @@
 	#define SET_V_SH_SEL1(R,V)  (R = (__u8)((R & (__u8)(M_SH_SEL1 ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_SH_SEL1(R)    (__u8)((R & M_SH_SEL1) >> 7)
 
+#define IDX_SL_SEL1 0x01 // index value selecting this multi-register
+
 
 #define R_SL_SEL7 0x15 // register address, write only
 	#define M_SL_SEL7  0x7F  // mask bits 0..6
 	#define SET_V_SL_SEL7(R,V)  (R = (__u8)((R & (__u8)(M_SL_SEL7 ^ 0xFF)) | (__u8)(V & 0x7F)))
 	#define GET_V_SL_SEL7(R)    (__u8)(R & M_SL_SEL7)
 
+#define IDX_SL_SEL7 0x07 // index value selecting this multi-register
 
 #define R_MSS0 0x15 // register address, write only
 	#define M_MSS_MOD  0x01  // mask bit 0
@@ -528,6 +535,8 @@
 	#define SET_V_MSS_SRC(R,V)  (R = (__u8)((R & (__u8)(M_MSS_SRC ^ 0xFF)) | (__u8)((V & 0x03) << 6)))
 	#define GET_V_MSS_SRC(R)    (__u8)((R & M_MSS_SRC) >> 6)
 
+#define IDX_MSS0 0x08 // index value selecting this multi-register
+
 
 #define R_PCM_MD1 0x15 // register address, write only
 	#define M_PCM_OD  0x02  // mask bit 1
@@ -549,6 +558,8 @@
 	#define M_PCM_SMPL  0x80  // mask bit 7
 	#define SET_V_PCM_SMPL(R,V)  (R = (__u8)((R & (__u8)(M_PCM_SMPL ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_PCM_SMPL(R)    (__u8)((R & M_PCM_SMPL) >> 7)
+
+#define IDX_PCM_MD1 0x09 // index value selecting this multi-register
 
 
 #define R_PCM_MD2 0x15 // register address, write only
@@ -580,6 +591,8 @@
 	#define SET_V_PLL_MAN(R,V)  (R = (__u8)((R & (__u8)(M_PLL_MAN ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_PLL_MAN(R)    (__u8)((R & M_PLL_MAN) >> 7)
 
+#define IDX_PCM_MD2 0x0A // index value selecting this multi-register
+
 
 #define R_MSS1 0x15 // register address, write only
 	#define M_MSS_OFFS  0x07  // mask bits 0..2
@@ -594,11 +607,15 @@
 	#define SET_V_MSS_DLY(R,V)  (R = (__u8)((R & (__u8)(M_MSS_DLY ^ 0xFF)) | (__u8)((V & 0x0F) << 4)))
 	#define GET_V_MSS_DLY(R)    (__u8)((R & M_MSS_DLY) >> 4)
 
+#define IDX_MSS1 0x0B // index value selecting this multi-register
+
 
 #define R_SH0L 0x15 // register address, write only
 	#define M_SH0L  0xFF  // mask bits 0..7
 	#define SET_V_SH0L(R,V)  (R = (__u8)((R & (__u8)(M_SH0L ^ 0xFF)) | (__u8)V))
 	#define GET_V_SH0L(R)    (__u8)(R & M_SH0L)
+
+#define IDX_SH0L 0x0C // index value selecting this multi-register
 
 
 #define R_SH0H 0x15 // register address, write only
@@ -606,17 +623,23 @@
 	#define SET_V_SH0H(R,V)  (R = (__u8)((R & (__u8)(M_SH0H ^ 0xFF)) | (__u8)V))
 	#define GET_V_SH0H(R)    (__u8)(R & M_SH0H)
 
+#define IDX_SH0H 0x0D // index value selecting this multi-register
+
 
 #define R_SH1L 0x15 // register address, write only
 	#define M_SH1L  0xFF  // mask bits 0..7
 	#define SET_V_SH1L(R,V)  (R = (__u8)((R & (__u8)(M_SH1L ^ 0xFF)) | (__u8)V))
 	#define GET_V_SH1L(R)    (__u8)(R & M_SH1L)
 
+#define IDX_SH1L 0x0E // index value selecting this multi-register
+
 
 #define R_SH1H 0x15 // register address, write only
 	#define M_SH1H  0xFF  // mask bits 0..7
 	#define SET_V_SH1H(R,V)  (R = (__u8)((R & (__u8)(M_SH1H ^ 0xFF)) | (__u8)V))
 	#define GET_V_SH1H(R)    (__u8)(R & M_SH1H)
+
+#define IDX_SH1H 0x0F // index value selecting this multi-register
 
 
 #define R_RAM_USE 0x15 // register address, read only
@@ -1233,6 +1256,8 @@
 	#define SET_V_ST_PULSE(R,V)  (R = (__u8)((R & (__u8)(M_ST_PULSE ^ 0xFF)) | (__u8)((V & 0x7F) << 1)))
 	#define GET_V_ST_PULSE(R)    (__u8)((R & M_ST_PULSE) >> 1)
 
+#define IDX_ST_CTRL3 0x00 // index value selecting this multi-register
+
 
 #define A_UP_CTRL3 0x35 // register address, write only
 	#define M_UP_SEL  0x01  // mask bit 0
@@ -1266,6 +1291,8 @@
 	#define M_UP_SCRM_RX_OFF  0x80  // mask bit 7
 	#define SET_V_UP_SCRM_RX_OFF(R,V)  (R = (__u8)((R & (__u8)(M_UP_SCRM_RX_OFF ^ 0xFF)) | (__u8)((V & 0x01) << 7)))
 	#define GET_V_UP_SCRM_RX_OFF(R)    (__u8)((R & M_UP_SCRM_RX_OFF) >> 7)
+
+#define IDX_UP_CTRL3 0x01 // index value selecting this multi-register
 
 
 #define A_SU_STA 0x35 // register address, read only

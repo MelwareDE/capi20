@@ -2545,7 +2545,7 @@ Isdnl2_Init(void)
 	int err;
 
 	printk(KERN_INFO
-	    "ISDN L2 TE driver version %s\n", mISDN_getrev(l2_revision));
+	    "ISDN L2 TE driver version %s (Melware)\n", mISDN_getrev(l2_revision));
 #ifdef MODULE
 	isdnl2.owner = THIS_MODULE;
 #endif

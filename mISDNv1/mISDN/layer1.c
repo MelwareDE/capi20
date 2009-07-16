@@ -818,7 +818,7 @@ Isdnl1Init(void)
 {
 	int err;
 
-	printk(KERN_INFO "ISDN L1 driver version %s\n",
+	printk(KERN_INFO "ISDN L1 driver version %s (Melware)\n",
 	    mISDN_getrev(l1_revision));
 #ifdef MODULE
 	isdnl1.owner = THIS_MODULE;

@@ -3201,7 +3201,7 @@ int NDSS1Init(void)
 	char tmp[32];
 
 	strcpy(tmp, dss1_revision);
-	printk(KERN_INFO "mISDN: NT DSS1 Rev. %s\n", mISDN_getrev(tmp));
+	printk(KERN_INFO "mISDN: NT DSS1 Rev. %s (Melware)\n", mISDN_getrev(tmp));
 #ifdef MODULE
 	n_dss1.owner = THIS_MODULE;
 #endif

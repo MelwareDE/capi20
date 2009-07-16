@@ -494,7 +494,7 @@ Capi20Init(void)
 {
 	int err;
 
-	printk(KERN_INFO "%s driver file version %s\n",
+	printk(KERN_INFO "%s driver file version %s (Melware)\n",
 	    MName, mISDN_getrev(capi_revision));
 #ifdef MODULE
 	capi_obj.owner = THIS_MODULE;

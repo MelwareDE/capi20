@@ -1,4 +1,4 @@
-/* xhfc_su.h v1.9 2007/10/11
+/* xhfc_su.h v1.8 2007/05/30
  * mISDN driver for Cologne Chip' XHFC
  *
  * (C) 2007 Copyright Cologne Chip AG
@@ -45,9 +45,54 @@
 
 
 /* define bridge for chip register access */
-#define BRIDGE_UNKWOWN	0
-#define BRIDGE_PCI2PI	1 /* used at Cologne Chip AG's Evaluation Card */
-#define BRIDGE		BRIDGE_PCI2PI
+#define BRIDGE_UNKWOWN			0
+/* Cologne Chip AG's Evaluation Card */
+#define BRIDGE_PCI2PI			1
+#define BRIDGE_SIMPLE_MEMORY_MAPPED 	2
+/* embedded SPI-controlled XHFC driver */
+#define BRIDGE_SPI			3
+
+#ifdef CONFIG_CAESAR_V2
+#define BRIDGE BRIDGE_SPI
+#define XHFC_BFSI_IRQ_PROCESSING
+//#include <linux/bfsi_tlg.h>	/* BFSI modules interface */
+#include "bfsi.h"	/* BFSI modules interface */
+#endif
+
+
+#if !defined(BRIDGE)
+#if defined(CONFIG_XHFC_BRIDGE_PCI)
+	#define BRIDGE		BRIDGE_PCI2PI
+#elif defined(CONFIG_XHFC_BRIDGE_SPI)
+	#define BRIDGE		BRIDGE_SPI
+#if defined(CONFIG_BLACKFIN)
+	/* Use Blackfin Serial Interface module to access SPI/interrupt/DMA */
+	#define XHFC_BFSI_IRQ_PROCESSING
+//	#include <linux/bfsi_tlg.h>	/* BFSI modules interface */
+	#include <linux/bfsi.h>	/* BFSI modules interface */
+#endif
+
+#elif defined(CONFIG_XHFC_BRIDGE_SIMPLE_MEMORY_MAPPED)
+	#define BRIDGE		BRIDGE_SIMPLE_MEMORY_MAPPED
+#else
+	#warning Undefined bridge type! Default to SPI
+	#define BRIDGE		BRIDGE_SPI
+#endif
+#endif // #ifndef BRIDGE
+
+
+/* Careful here, the bfsi samples_per_chunk is passed to the module and not hardcoded. Probabl
+   want to bring these together at one point .. Dave
+*/
+
+/* This should always be 8, at least to work with zaptel */
+
+
+#ifndef SAMPLES_PER_CHUNK
+#define SAMPLES_PER_CHUNK 8
+#endif
+
+
 
 #define MAX_PORT	4
 #define CHAN_PER_PORT	4	/* D, B1, B2, PCM */
@@ -67,6 +112,22 @@
 
 #define PORT_MODE_LOOPS		0xE0	/* mask port mode Loop B1/B2/D */
 
+/* Flags in u32 pcm_config parameter */
+
+#define XHFC_PCM_FIRST_TS     	0x000000FF
+#define XHFC_PCM_MASTER_SPEED 	0x00030000
+#define XHFC_PCM_SLAVE_MODE   	0x00040000
+#define XHFC_PCM_LONG_F0IO    	0x00080000
+#define XHFC_PCM_SYNC_PORT    	0x00700000
+#define XHFC_PCM_C2I_EN    	0x00800000
+#define XHFC_PCM_C2O_EN    	0x01000000
+#define XHFC_PCM_C4_POL    	0x02000000
+#define XHFC_PCM_F0IO_A_LOW   	0x04000000
+#define XHFC_PCM_SYNC_I_ENABLE	0x08000000
+
+#define XHFC_PCM_FIRST_TS_GET(x) 	((x) & (XHFC_PCM_FIRST_TS))
+#define XHFC_PCM_MASTER_SPEED_GET(x)  	(((x) & (XHFC_PCM_MASTER_SPEED)) >> 16)
+#define XHFC_PCM_SYNC_PORT_GET(x)	(((x) & (XHFC_PCM_SYNC_PORT)) >> 20)
 
 /* NT / TE defines */
 #define NT_T1_COUNT	25	/* number of 4ms interrupts for G2 timeout */
@@ -75,7 +136,7 @@
 #define STA_ACTIVATE	0x60	/* start activation   in A_SU_WR_STA */
 #define STA_DEACTIVATE	0x40	/* start deactivation in A_SU_WR_STA */
 #define LIF_MODE_NT	0x04	/* Line Interface NT mode */
-#define XHFC_TIMER_T3	8000	/* 8s activation timer T3 */
+#define XHFC_TIMER_T3	2000	/* 2s activation timer T3 WAS: 8s */
 #define XHFC_TIMER_T4	500	/* 500ms deactivation timer T4 */
 
 /* xhfc Layer1 physical commands */
@@ -118,6 +179,14 @@ typedef struct {
 	char	*device_name;
 } pi_params;
 
+/* Absolute XHFC channel index from B-channel index + port */
+#define B_CH_IDX(pt,b)	(((pt) * 4) + (b))
+
+/* Absolute XHFC D-channel index from port nr */
+#define D_CH_IDX(pt)	(((pt) * 4) + 2)
+
+/* Absolute XHFC PCM-channel index from port nr */
+#define PCM_CH_IDX(pt)	(((pt) * 4) + 3)
 
 struct _xhfc_t;
 struct _xhfc_pi;
@@ -148,14 +217,20 @@ typedef struct {
 typedef struct {
 	channel_t   ch;
 	xhfc_port_t * port;
+	u16 slot_tx;
+	u16 slot_rx;
 } xhfc_chan_t;
 
 
+/**********************/
 /* hardware structure */
+/**********************/
 typedef struct _xhfc_t {
 	char		name[15];	/* XHFC_PI0_0 = ProcessorInterface no. 0, Chip no. 0 */
 	__u8		chipnum;	/* global chip number */
 	__u8		chipidx;	/* index in pi->xhfcs[NUM_XHFCS] */
+	int		pcm;            /* id of pcm bus */
+	__u32		pcm_config;     /* pcm bus configuration */
 	struct _xhfc_pi	* pi;		/* backpointer to xhfc_pi */
 	__u8		param_idx;	/* used to access module param arrays */
 
@@ -173,6 +248,7 @@ typedef struct _xhfc_t {
 	xhfc_chan_t * chan;	/* one each D/B/PCM channel */
 
 	__u32 irq_cnt;	/* count irqs */
+	__u32 irq_none;	/* counts how many irq were found void */
 	__u32 f0_cnt;	/* last F0 counter value */
 	__u32 f0_akku;	/* akkumulated f0 counter deltas */
 
@@ -186,6 +262,8 @@ typedef struct _xhfc_t {
 	__u8 ti_wd;		/* timer interval */
 	__u8 pcm_md0;
 	__u8 pcm_md1;
+	__u8 pcm_md2;
+	__u8 su_sync;
 
 	__u32 fifo_irq;		/* fifo bl irq */
 	__u32 fifo_irqmsk;	/* fifo bl irq */
@@ -193,22 +271,37 @@ typedef struct _xhfc_t {
 } xhfc_t;
 
 
-/* (P)rocessor(I)nterface (e.g. PCI bridge) */
+/**********************/
+/* hardware structure */
+/**********************/
 typedef struct _xhfc_pi {
 #if BRIDGE == BRIDGE_PCI2PI
 	struct pci_dev *pdev;
+#endif
 	int		irq;
-	int 		iobase;	
+	int 		iobase;
 	u_char		*membase;
 	u_char		*hw_membase;
 	int		cardnum;
 	char		name[10];	/* 'XHFC_PI0' = ProcessorInterface no. 0 */
 	pi_params	driver_data;
-	spinlock_t	lock;
+
+#if BRIDGE == BRIDGE_SPI
+	int             irq_pfx;
+	int		irq_nr;
+	u16		spi_sel;
+	u16		spi_speed;
+#endif /* #if BRIDGE == BRIDGE_SPI */
+#if BRIDGE == BRIDGE_SIMPLE_MEMORY_MAPPED
+	unsigned int
+		* vmmioSSC0,
+		* vmmioSSC1,
+		* pdwPioBaseB,
+		* pdwPioBaseA;
 #endif
 
-	/* each PI may contain several XHFCs */
 	xhfc_t		* xhfc;
+	spinlock_t      lock;
 } xhfc_pi;
 
 
