@@ -562,7 +562,7 @@ static irqreturn_t sport_rx_isr(int irq, void *dev_id)
 static int init_sport_interrupts(void)
 {
   	
-	if(request_irq(IRQ_SPORT0_RX, sport_rx_isr, SA_INTERRUPT, "sport0 rx", NULL) != 0) { // connect the ISR to given interrupt
+	if(request_irq(IRQ_SPORT0_RX, sport_rx_isr, IRQF_DISABLED, "sport0 rx", NULL) != 0) { // connect the ISR to given interrupt
     
 		return -EBUSY;
 	}
@@ -741,12 +741,13 @@ int bfsi_proc_read(char *buf, char **start, off_t offset,
 			
 */
 
-int bfsi_sport0_init(int samples, int debug){
+int bfsi_sport0_init(int samples, int debug)
+{
+  int i;
 
   bfsi_debug=debug;
   samples_per_chunk = samples;
 
-  int i;
 	
   if(init){
 	printk(KERN_INFO "BFSI already initialized\n");	
@@ -949,7 +950,7 @@ void bfsi_spi_init_global(void){
 
 void bfsi_spi_write_8_bits(u16 chip_select, u8 bits)
 {
-  u16 flag_enable, flag;
+  u16 flag_enable, flag = 0;
 
   if ((chip_select < 8) && (chip_select != 0))  {
     flag = read_FLAG();
@@ -983,7 +984,7 @@ void bfsi_spi_write_8_bits(u16 chip_select, u8 bits)
 
 u8 bfsi_spi_read_8_bits(u16 chip_select)
 {
-  u16 flag_enable, flag, ret;
+  u16 flag_enable = 0, flag = 0, ret;
 
   if ((chip_select < 8) && (chip_select != 0)) {
     flag = read_FLAG();

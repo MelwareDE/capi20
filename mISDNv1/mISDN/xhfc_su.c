@@ -803,9 +803,9 @@ handle_bmsg(channel_t *bch, struct sk_buff *skb)
 	} else if (hh->prim == (PH_CONTROL | REQUEST)) {
 
 		if (debug)
-			printk(KERN_INFO "%s %s: Received prim(%x %s|%s) "
+			printk(KERN_INFO "%s %s: Received prim(%x) "
 			       "dinfo=%#x\n", xhfc->name, __FUNCTION__,
-			       FRIENDLY_PRIM_ARG(hh->prim), hh->dinfo);
+			       hh->prim, hh->dinfo);
 
 		spin_lock_irqsave(&xhfc->lock, flags);
 
@@ -895,8 +895,8 @@ handle_bmsg(channel_t *bch, struct sk_buff *skb)
 		spin_unlock_irqrestore(&xhfc->lock, flags);
 
 	} else {
-		printk(KERN_WARNING "%s %s: unknown prim(%x %s|%s)\n",
-		       xhfc->name, __FUNCTION__, FRIENDLY_PRIM_ARG(hh->prim));
+		printk(KERN_WARNING "%s %s: unknown prim(%x)\n",
+		       xhfc->name, __FUNCTION__, hh->prim);
 	}
 	if (!ret)
 		dev_kfree_skb(skb);
@@ -959,8 +959,8 @@ xhfc_manager(void *data, u_int prim, void *arg)
 
 	if (!data) {
 		MGR_HASPROTOCOL_HANDLER(prim, arg, &hw_mISDNObj)
-		    printk(KERN_ERR "%s: no data prim %x %s|%s arg %p\n",
-			   __FUNCTION__, FRIENDLY_PRIM_ARG(prim), arg);
+		    printk(KERN_ERR "%s: no data prim %x arg %p\n",
+			   __FUNCTION__, prim, arg);
 		return (-EINVAL);
 	}
 
@@ -985,8 +985,8 @@ xhfc_manager(void *data, u_int prim, void *arg)
 
 	if (channel < 0) {
 		printk(KERN_ERR
-		    "%s: no card/channel found  data %p prim %x %s|%s arg %p\n",
-		    __FUNCTION__, data, FRIENDLY_PRIM_ARG(prim), arg);
+		    "%s: no card/channel found  data %p prim %x arg %p\n",
+		    __FUNCTION__, data, prim, arg);
 		return (-EINVAL);
 	}
 
@@ -1050,9 +1050,9 @@ xhfc_manager(void *data, u_int prim, void *arg)
 			PRIM_NOT_HANDLED(MGR_CTRLREADY | INDICATION);
 		default:
 			printk(KERN_WARNING
-			    "%s %s: prim %x %s|%s "
+			    "%s %s: prim %x "
 			    "not handled\n",
-			    xhfc->name, __FUNCTION__, FRIENDLY_PRIM_ARG(prim));
+			    xhfc->name, __FUNCTION__, prim);
 			return (-EINVAL);
 	}
 	return (0);
