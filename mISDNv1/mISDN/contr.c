@@ -191,6 +191,18 @@ Plci_t
 	return &contr->plcis[i - 1];
 }
 
+Controller_t *getContr4plciId(__u32 addr)
+{
+	Controller_t *contr = NULL, *tcontr;
+
+	list_for_each_entry_safe(contr, tcontr, &controllers, controllerlist) {
+		if (contr->addr == (addr & 0xff))
+			break;
+		contr = NULL;
+	}
+	return contr;
+}
+
 AppPlci_t *getAplci4plciId(__u32 addr)
 {
 	Controller_t *contr = NULL, *tcontr;
@@ -805,8 +817,8 @@ ControllerConstr(Controller_t **contr_p, mISDNstack_t *st, mISDN_pid_t *pid,
 	retval = attach_capi_ctr(contr->ctrl);
 #endif
 	if (!retval) {
-		printk(KERN_DEBUG "contr->addr(%02x) cnr(%02x) st(%08x)\n",
-			contr->addr, contr->ctrl->cnr, st->id);
+		printk(KERN_DEBUG "contr->addr(%02x) cnr(%02x) st(%08x) %s\n",
+			contr->addr, contr->ctrl->cnr, st->id, (contr->nt)?"NT":"TE");
 		contr->addr = contr->ctrl->cnr;
 		plciInit(contr);
 		mISDN_ctrl(st, MGR_REGLAYER | INDICATION, &contr->inst);

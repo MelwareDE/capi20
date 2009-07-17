@@ -2770,8 +2770,10 @@ init_mISDN_channels(xhfc_t * xhfc)
 			pid.protocol[1] = ISDN_PID_L1_NT_S0;
 			ch->inst.pid.layermask |= ISDN_LAYER(1);
 			pid.layermask |= ISDN_LAYER(1);
+#if 0
 			if (layermask[xhfc->param_idx + pt] & ISDN_LAYER(2))
 				pid.protocol[2] = ISDN_PID_L2_LAPD_NET;
+#endif
 		} else {
 			/* TE-mode */
 			xhfc->port[xhfc->param_idx + pt].mode |= PORT_MODE_TE;
@@ -2858,7 +2860,7 @@ parse_module_params(xhfc_t * xhfc)
 	/* parse module parameters */
 	for (pt = 0; pt < xhfc->num_ports; pt++) {
 		/* D-Channel protocol: (2=DSS1) */
-		xhfc->port[pt].dpid = (protocol[xhfc->param_idx + pt] & 0x0F);
+		xhfc->port[pt].dpid = (protocol[xhfc->param_idx + pt] & 0x1F);
 		if (xhfc->port[pt].dpid == 0) {
 			printk(KERN_INFO
 			    "%s %s: WARNING: wrong value for protocol[%i], "

@@ -238,10 +238,15 @@ static __inline__ int capiGetFacReqParm(__u8 *p, struct FacReqParm *facReqParm)
 }
 
 static int
-GetSupportedServices(FacReqParm_t *facReqParm, FacConfParm_t *facConfParm)
+GetSupportedServices(FacReqParm_t *facReqParm, FacConfParm_t *facConfParm, Controller_t *contr)
 {
 	facConfParm->u.GetSupportedServices.SupplementaryServiceInfo = CapiSuccess;
-	facConfParm->u.GetSupportedServices.SupportedServices = mISDNSupportedServices;
+	if ((contr) && (contr->nt == 0)) {
+		facConfParm->u.GetSupportedServices.SupportedServices = mISDNSupportedServices;
+	} else {
+		/* NT mode */
+		facConfParm->u.GetSupportedServices.SupportedServices = 0;
+	}
 	return CapiSuccess;
 }
 static int
@@ -405,6 +410,7 @@ SupplementaryFacilityReq(Application_t *appl, _cmsg *cmsg)
 	FacConfParm_t	facConfParm;
 	Plci_t		*plci;
 	AppPlci_t	*aplci;
+	Controller_t *contr = getContr4plciId(cmsg->adr.adrPLCI);
 	int		ret;
 
 	if (capiGetFacReqParm(cmsg->FacilityRequestParameter, &facReqParm) < 0) {
@@ -414,7 +420,7 @@ SupplementaryFacilityReq(Application_t *appl, _cmsg *cmsg)
 	facConfParm.Function = facReqParm.Function;
 	switch (facReqParm.Function) {
 		case 0x0000: // GetSupportedServices
-			Info = GetSupportedServices(&facReqParm, &facConfParm);
+			Info = GetSupportedServices(&facReqParm, &facConfParm, contr);
 			break;
 		case 0x0001: // Listen
 			Info = FacListen(appl, &facReqParm, &facConfParm);
