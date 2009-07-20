@@ -350,7 +350,7 @@ xhfc_ph_command(xhfc_port_t * port, u_char command)
 	xhfc_t * xhfc = port->xhfc;
 
 	if (debug & DEBUG_HFC_S0_STATES)
-		printk(KERN_INFO "%s %s: %s (%i)\n",
+		printk(KERN_DEBUG "%s %s: %s (%i)\n",
 		    __FUNCTION__, port->name,
 		    HFC_PH_COMMANDS[command], command);
 
@@ -444,7 +444,7 @@ l1_timer_start_t3(xhfc_port_t * port)
 {
 	if (!timer_pending(&port->t3_timer)) {
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+			printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 		port->t3_timer.expires = jiffies + (XHFC_TIMER_T3 * HZ) / 1000;
 		add_timer(&port->t3_timer);
 	}
@@ -456,7 +456,7 @@ l1_timer_stop_t3(xhfc_port_t * port)
 	clear_bit(HFC_L1_ACTIVATING, &port->l1_flags);
 	if (timer_pending(&port->t3_timer)) {
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+			printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 		del_timer(&port->t3_timer);
 	}
 }
@@ -472,7 +472,7 @@ l1_timer_expire_t3(xhfc_port_t * port)
 	channel_t * dch = &port->xhfc->chan[D_CH_IDX(port->idx)].ch;
 
 	if (debug & DEBUG_HFC_S0_STATES)
-		printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+		printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 
 	clear_bit(HFC_L1_ACTIVATING, &port->l1_flags),
 	xhfc_ph_command(port, HFC_L1_FORCE_DEACTIVATE_TE);
@@ -491,7 +491,7 @@ l1_timer_start_t4(xhfc_port_t * port)
 	set_bit(HFC_L1_DEACTTIMER, &port->l1_flags);
 	if (!timer_pending(&port->t4_timer)) {
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+			printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 
 		port->t4_timer.expires =
 		    jiffies + (XHFC_TIMER_T4 * HZ) / 1000;
@@ -505,7 +505,7 @@ l1_timer_stop_t4(xhfc_port_t * port)
 	clear_bit(HFC_L1_DEACTTIMER, &port->l1_flags);
 	if (timer_pending(&port->t4_timer)) {
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+			printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 		del_timer(&port->t4_timer);
 	}
 }
@@ -520,7 +520,7 @@ l1_timer_expire_t4(xhfc_port_t * port)
 	channel_t * dch = &port->xhfc->chan[D_CH_IDX(port->idx)].ch;
 
 	if (debug & DEBUG_HFC_S0_STATES)
-		printk(KERN_INFO "%s %s\n", __FUNCTION__, port->name);
+		printk(KERN_DEBUG "%s %s\n", __FUNCTION__, port->name);
 
 	clear_bit(HFC_L1_DEACTTIMER, &port->l1_flags);
 	mISDN_queue_data(&dch->inst, FLG_MSG_UP,
@@ -542,7 +542,7 @@ su_new_state(xhfc_port_t * port)
 
 	if (port->mode & PORT_MODE_TE) {
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s: TE F%d\n",
+			printk(KERN_DEBUG "%s %s: TE F%d\n",
 				__FUNCTION__, port->name, dch->state);
 
 		if ((dch->state <= 3) || (dch->state >= 7))
@@ -562,7 +562,7 @@ su_new_state(xhfc_port_t * port)
 			if (test_and_clear_bit(HFC_L1_ACTIVATING,
 			    &port->l1_flags)) {
 				if (debug & DEBUG_HFC_S0_STATES)
-					printk(KERN_INFO
+					printk(KERN_DEBUG
 					    "%s %s: l1->l2 "
 					    "(PH_ACTIVATE | CONFIRM)\n",
 					    __FUNCTION__, port->name);
@@ -573,7 +573,7 @@ su_new_state(xhfc_port_t * port)
 				if (!(test_and_set_bit(HFC_L1_ACTIVATED,
 				    &port->l1_flags))) {
 					if (debug & DEBUG_HFC_S0_STATES)
-						printk(KERN_INFO
+						printk(KERN_DEBUG
 						    "%s %s: l1->l2 "
 						    "(PH_ACTIVATE | "
 						    "INDICATION)\n",
@@ -600,7 +600,7 @@ su_new_state(xhfc_port_t * port)
 	} else if (port->mode & PORT_MODE_NT) {
 
 		if (debug & DEBUG_HFC_S0_STATES)
-			printk(KERN_INFO "%s %s: NT G%d\n",
+			printk(KERN_DEBUG "%s %s: NT G%d\n",
 				__FUNCTION__, port->name, dch->state);
 
 		switch (dch->state) {
@@ -610,7 +610,7 @@ su_new_state(xhfc_port_t * port)
 			port->mode &= ~NT_TIMER;
 			prim = (PH_DEACTIVATE | INDICATION);
 			if (debug & DEBUG_HFC_S0_STATES)
-				printk(KERN_INFO "%s %s: l1->l2 "
+				printk(KERN_DEBUG "%s %s: l1->l2 "
 				    "(PH_DEACTIVATE | INDICATION)\n",
 				    __FUNCTION__, port->name);
 			break;
@@ -634,7 +634,7 @@ su_new_state(xhfc_port_t * port)
 			prim = (PH_ACTIVATE | INDICATION);
 
 			if (debug & DEBUG_HFC_S0_STATES)
-				printk(KERN_INFO "%s %s: l1->l2 "
+				printk(KERN_DEBUG "%s %s: l1->l2 "
 				    "(PH_ACTIVATE | INDICATION)\n",
 				    __FUNCTION__, port->name);
 			break;
@@ -803,7 +803,7 @@ handle_bmsg(channel_t *bch, struct sk_buff *skb)
 	} else if (hh->prim == (PH_CONTROL | REQUEST)) {
 
 		if (debug)
-			printk(KERN_INFO "%s %s: Received prim(%x) "
+			printk(KERN_DEBUG "%s %s: Received prim(%x) "
 			       "dinfo=%#x\n", xhfc->name, __FUNCTION__,
 			       hh->prim, hh->dinfo);
 
@@ -1186,10 +1186,11 @@ send_buffer:
 		ch->tx_idx += tcnt;
 
 		if (debug & DEBUG_HFC_FIFO) {
-			printk("%s channel(%i) writing: ",
-			    xhfc->name, channel);
-
+			mISDN_debugprint(&ch->inst,
+					"channel(%i) TX len(%i): ",
+					channel, tcnt);
 			i = 0;
+			printk(KERN_DEBUG "  ");
 			while (i < tcnt)
 				printk("%02x ", *(data+(i++)));
 			printk("\n");
@@ -1379,7 +1380,7 @@ receive_buffer:
 					"channel(%i) new RX len(%i): ",
 					channel, ch->rx_skb->len);
 				i = 0;
-				printk("  ");
+				printk(KERN_DEBUG "  ");
 				while (i < ch->rx_skb->len)
 					printk("%02x ", ch->rx_skb->data[i++]);
 				printk("\n");
@@ -1553,7 +1554,7 @@ xhfc_interrupt(int intno, void *dev_id)
 	}
 	if (!xhfc_with_irqs) {
 		if (debug & DEBUG_HFC_IRQ)
-			printk(KERN_INFO
+			printk(KERN_DEBUG
 			    "%s %s NOT M_GLOB_IRQ_EN or R_IRQ_OVIEW \n",
 			    xhfc->name, __FUNCTION__);
 		return IRQ_NONE;
@@ -1791,7 +1792,7 @@ static void
 disable_dma(xhfc_t * xhfc)
 {
 	if (debug & DEBUG_HFC_IRQ)
-		printk(KERN_INFO "%s %s\n", xhfc->name, __FUNCTION__);
+		printk(KERN_DEBUG "%s %s\n", xhfc->name, __FUNCTION__);
 
 	bfsi_soft_dma_disable(xhfc->pi->irq);
 }
@@ -1800,7 +1801,7 @@ static void
 enable_dma(xhfc_t * xhfc)
 {
 	if (debug & DEBUG_HFC_IRQ)
-		printk(KERN_INFO "%s %s\n", xhfc->name, __FUNCTION__);
+		printk(KERN_DEBUG "%s %s\n", xhfc->name, __FUNCTION__);
 
 	bfsi_soft_dma_enable(xhfc->pi->irq);
 }
@@ -1814,7 +1815,7 @@ static void
 disable_interrupts(xhfc_t * xhfc)
 {
 	if (debug & DEBUG_HFC_IRQ)
-		printk(KERN_INFO "%s %s\n", xhfc->name, __FUNCTION__);
+		printk(KERN_DEBUG "%s %s\n", xhfc->name, __FUNCTION__);
 
 #ifdef XHFC_BFSI_IRQ_PROCESSING
 	if (xhfc->testirq)
@@ -1832,7 +1833,7 @@ static void
 enable_interrupts(xhfc_t * xhfc)
 {
 	if (debug & DEBUG_HFC_IRQ)
-		printk(KERN_INFO "%s %s\n", xhfc->name, __FUNCTION__);
+		printk(KERN_DEBUG "%s %s\n", xhfc->name, __FUNCTION__);
 	
 	write_xhfc(xhfc, R_SU_IRQMSK, xhfc->su_irqmsk);
 
@@ -1876,7 +1877,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 	__u8 sh0h;
 
 	if (debug & DEBUG_HFC_INIT) {
-		printk(KERN_INFO
+		printk(KERN_DEBUG
 		"%s %s: Setting up PCM audio over TDM: pcm_config=%#x\n"
 		"TDM Bus mode: %s\n"
 		"TDM Bit rate: %s Mbit/s\n"
@@ -1920,7 +1921,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 	/* TDM Master-only setup */
 	if (!(xhfc->pcm_config & XHFC_PCM_SLAVE_MODE)) {
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Setting TDM master speed = %d\n",
+			printk(KERN_DEBUG "%s: Setting TDM master speed = %d\n",
 				__FUNCTION__, GET_V_PCM_DR(xhfc->pcm_md1));
 		}
 		/* PCM: set pll adjust, TDM data rate. Register: R_PCM_MD1 */
@@ -1942,7 +1943,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 			xhfc->pcm_config & XHFC_PCM_C2O_EN ? 1 : 0);
 
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Setting TDM clock: C2I=%s, "
+			printk(KERN_DEBUG "%s: Setting TDM clock: C2I=%s, "
 				"C2O=%s\n", __FUNCTION__,
 				GET_V_C2I_EN(xhfc->pcm_md2) ? "ON" : "OFF",
 				GET_V_C2O_EN(xhfc->pcm_md2) ? "ON" : "OFF");
@@ -1991,7 +1992,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 	switch(sync_port) {
 	case 0:
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Setting SU sync=AUTO\n",
+			printk(KERN_DEBUG "%s: Setting SU sync=AUTO\n",
 				__FUNCTION__);
 		}
 		SET_V_MAN_SYNC(xhfc->su_sync, 0);
@@ -2003,7 +2004,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 	case 3:
 	case 4:
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Setting SU sync=PORT_%d\n",
+			printk(KERN_DEBUG "%s: Setting SU sync=PORT_%d\n",
 				__FUNCTION__, sync_port);
 		}
 		SET_V_MAN_SYNC(xhfc->su_sync, 1);
@@ -2011,7 +2012,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 		break;
 	case 5:
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Setting SU sync=SYNC_I\n",
+			printk(KERN_DEBUG "%s: Setting SU sync=SYNC_I\n",
 				__FUNCTION__);
 		}
 		SET_V_MAN_SYNC(xhfc->su_sync, 1);
@@ -2020,7 +2021,7 @@ xhfc_pcm_init(xhfc_t * xhfc)
 
 	default:
 		if (debug & DEBUG_HFC_INIT)
-			printk(KERN_ERR "%s %s: Wrong ST/Up sync port"
+			printk(KERN_DEBUG "%s %s: Wrong ST/Up sync port"
 				"value %d\n",
 			       xhfc->name, __FUNCTION__, sync_port);
 		return (-EINVAL);
@@ -2244,7 +2245,7 @@ init_xhfc(xhfc_t * xhfc)
 		return (err);
 	} else {
 		if (debug & DEBUG_HFC_INIT)
-			printk(KERN_INFO "%s ChipID: 0x%x\n",
+			printk(KERN_DEBUG "%s ChipID: 0x%x\n",
 			       xhfc->name, chip_id);
 	}
 
@@ -2332,7 +2333,7 @@ init_xhfc(xhfc_t * xhfc)
 
 	} else {
 		if (debug & DEBUG_HFC_INIT) {
-			printk(KERN_INFO "%s: Set PCM default to master mode\n",
+			printk(KERN_DEBUG "%s: Set PCM default to master mode\n",
 				__FUNCTION__);
 		}
 		/* set PCM master mode as default configuration */
@@ -2369,7 +2370,7 @@ init_xhfc(xhfc_t * xhfc)
 	  return (0);
 	} else {
 		if (debug & DEBUG_HFC_INIT)
-			printk(KERN_INFO
+			printk(KERN_DEBUG
 			    "%s %s: ERROR getting IRQ (irq_cnt %i)\n",
 			    xhfc->name, __FUNCTION__, xhfc->irq_cnt);
 		return (-EIO);
@@ -2411,7 +2412,7 @@ init_su(xhfc_t * xhfc, __u8 pt)
 	xhfc_port_t *port = &xhfc->port[pt];
 
 	if (debug & DEBUG_HFC_MODE)
-		printk(KERN_INFO "%s %s port(%i)\n", xhfc->name,
+		printk(KERN_DEBUG "%s %s port(%i)\n", xhfc->name,
 		    __FUNCTION__, pt);
 
 	write_xhfc(xhfc, R_SU_SEL, pt);
@@ -2435,7 +2436,7 @@ init_su(xhfc_t * xhfc, __u8 pt)
 	}
 
 	if (debug & DEBUG_HFC_MODE)
-		printk(KERN_INFO "%s %s su_ctrl0(0x%02x) "
+		printk(KERN_DEBUG "%s %s su_ctrl0(0x%02x) "
 		       "su_ctrl1(0x%02x) "
 		       "su_ctrl2(0x%02x) "
 		       "st_ctrl3(0x%02x)\n",
@@ -2483,7 +2484,7 @@ setup_fifo(xhfc_t * xhfc, __u8 fifo, __u8 conhdlc, __u8 subcfg,
 
 #if BRIDGE == BRIDGE_PCI2PI
 	if (debug & DEBUG_HFC_MODE) {
-		printk(KERN_INFO
+		printk(KERN_DEBUG
 		    "%s %s: fifo(%i) conhdlc(0x%02x) "
 		    "subcfg(0x%02x) fifoctrl(0x%02x)\n",
 		    xhfc->name, __FUNCTION__, fifo,
@@ -2509,7 +2510,7 @@ setup_su(xhfc_t * xhfc, __u8 pt, __u8 bc, __u8 enable)
 	}
 
 	if (debug & DEBUG_HFC_MODE)
-		printk(KERN_INFO "%s %s %s pt(%i) bc(%i)\n",
+		printk(KERN_DEBUG "%s %s %s pt(%i) bc(%i)\n",
 		    xhfc->name, __FUNCTION__,
 		    (enable) ? ("enable") : ("disable"), pt, bc);
 
@@ -2663,7 +2664,7 @@ init_mISDN_channels(xhfc_t * xhfc)
 		/* init D channels */
 		ch_idx = D_CH_IDX(pt);
 		if (debug & DEBUG_HFC_INIT)
-			printk(KERN_INFO
+			printk(KERN_DEBUG
 			    "%s %s: Registering D-channel, card(%d) "
 			    "ch(%d) port(%d) protocol(%x)\n",
 			    xhfc->name, __FUNCTION__, xhfc->chipnum,
@@ -2708,7 +2709,7 @@ init_mISDN_channels(xhfc_t * xhfc)
 		for (b = 0; b < 2; b++) {
 			ch_idx = B_CH_IDX(pt, b);
 			if (debug & DEBUG_HFC_INIT)
-				printk(KERN_INFO
+				printk(KERN_DEBUG
 				    "%s %s: Registering B-channel, card(%d) "
 				    "ch(%d) port(%d)\n", xhfc->name,
 				    __FUNCTION__, xhfc->chipnum, ch_idx, pt);
@@ -2784,7 +2785,7 @@ init_mISDN_channels(xhfc_t * xhfc)
 		}
 
 		if (debug & DEBUG_HFC_INIT)
-			printk(KERN_INFO
+			printk(KERN_DEBUG
 			    "%s %s: registering Stack for Port %i\n",
 			    xhfc->name, __FUNCTION__, pt);
 
@@ -2938,7 +2939,7 @@ parse_module_params(xhfc_t * xhfc)
 			xhfc->port[pt].mode |= PORT_MODE_LOOP_D;
 
 		if (debug & DEBUG_HFC_INIT)
-			printk(
+			printk(KERN_DEBUG
 			    "%s %s: protocol[%i]=0x%02x, dpid=%d, "
 			    "mode:%s,%s %s, Loops:0x%x\n",
 			    xhfc->name, __FUNCTION__, xhfc->param_idx+pt,
@@ -3607,7 +3608,7 @@ static int __devinit xhfc_spi_probe (void)
 	int err = -ENODEV;
 	unsigned short have_master = 0;
 
-	printk(/*KERN_DEBUG*/ "%s: entered\n", __FUNCTION__);
+	printk(KERN_DEBUG "%s: entered\n", __FUNCTION__);
 
 	/* alloc mem for Processor Interface xhfc_pi */
 	pi = kzalloc(sizeof(xhfc_pi), GFP_KERNEL);
@@ -3669,7 +3670,7 @@ static int __devinit xhfc_spi_probe (void)
 	}
 
 	if (debug)
-		printk(KERN_INFO "%s %s: Registered to BFSI IRQ %#x\n",
+		printk(KERN_DEBUG "%s %s: Registered to BFSI IRQ %#x\n",
 			pi->name, __FUNCTION__, pi->irq);
 #endif
 	err = 0;
