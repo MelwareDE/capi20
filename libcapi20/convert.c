@@ -343,7 +343,11 @@ static unsigned char *cpars[] = {
     /*15*/ 0,
     /*16 DISCONNECT_CONF*/      (unsigned char*)"\x03\x24\x01",
     /*17 LISTEN_CONF*/          (unsigned char*)"\x03\x24\x01",
+#if 0
     /*18 MANUFACTURER_REQ*/     (unsigned char*)"\x03\x2b\x15\x22\x2a\x01",
+#else /** \todo Need to treate manufacturer specific as plain data */
+    /*18 MANUFACTURER_REQ dw(...) */     (unsigned char*)"\x03\x2b\x24\x2a\x01",
+#endif
     /*19*/ 0,
     /*1a INFO_CONF*/            (unsigned char*)"\x03\x24\x01",
     /*1b FACILITY_CONF*/        (unsigned char*)"\x03\x24\x20\x1b\x01",
@@ -365,7 +369,11 @@ static unsigned char *cpars[] = {
     /*27 CONNECT_ACTIVE_IND*/   (unsigned char*)"\x03\x16\x17\x29\x01",
     /*28 DISCONNECT_IND*/       (unsigned char*)"\x03\x2d\x01",
     /*29*/ 0,
+#if 0 
     /*2a MANUFACTURER_CONF*/    (unsigned char*)"\x03\x2b\x15\x22\x2a\x01",
+#else /** \todo Need to treate manufacturer specific as plain data */
+    /*2a MANUFACTURER_CONF*/    (unsigned char*)"\x03\x2b\x15\x01",
+#endif
     /*2b*/ 0,
     /*2c INFO_IND*/             (unsigned char*)"\x03\x27\x25\x01",
     /*2d FACILITY_IND*/         (unsigned char*)"\x03\x20\x1d\x01",
@@ -422,10 +430,18 @@ static unsigned char *cpars[] = {
 
 #else
 
+#ifdef __bfin__ /* Blackfin */
+#define wordTLcpy(x,y)        memcpy(x,y,2);
+#else
 #define wordTLcpy(x,y)        *(_cword *)(x)=*(_cword *)(y);
+#endif
 #define dwordTLcpy(x,y)       memcpy(x,y,4);
 
+#ifdef __bfin__ /* Blackfin */
+#define wordTRcpy(x,y)        memcpy(y,x,2);
+#else
 #define wordTRcpy(x,y)        *(_cword *)(y)=*(_cword *)(x);
+#endif
 #define dwordTRcpy(x,y)       memcpy(y,x,4);
 
 #define qwordTLcpy(x,y)       memcpy(x,y,8);
@@ -548,7 +564,7 @@ unsigned capi_cmsg2message(_cmsg * cmsg, _cbyte * msg)
 	if (   cmsg->Command == CAPI_DATA_B3
 	    && (cmsg->Subcommand == CAPI_REQ || cmsg->Subcommand == CAPI_IND)) {
 		if (sizeof(void *) == 4) {
-			cmsg->Data32 = (_cdword) cmsg->Data;
+			cmsg->Data32 = (_cdword)(unsigned long)cmsg->Data;
 			cmsg->Data64 = 0;
 		} else {
 			cmsg->Data32 = 0;
@@ -570,7 +586,9 @@ unsigned capi_cmsg2message(_cmsg * cmsg, _cbyte * msg)
 /*-------------------------------------------------------*/
 static void message_2_pars(_cmsg * cmsg)
 {
-	for (; TYP != _CEND; cmsg->p++) {
+	_cword message_length = CAPIMSG_LEN(cmsg->m);
+
+	for (; TYP != _CEND && cmsg->l < message_length; cmsg->p++) {
 
 		switch (TYP) {
 		case _CBYTE:
@@ -621,11 +639,15 @@ static void message_2_pars(_cmsg * cmsg)
 /*-------------------------------------------------------*/
 unsigned capi_message2cmsg(_cmsg * cmsg, _cbyte * msg)
 {
-	memset(cmsg, 0, sizeof(_cmsg));
+	_cbyte Command;
+
+	byteTRcpy(msg + 4, &Command);
+	if (Command != CAPI_DATA_B3)
+		memset(cmsg, 0, sizeof(_cmsg));
 	cmsg->m = msg;
 	cmsg->l = 8;
 	cmsg->p = 0;
-	byteTRcpy(cmsg->m + 4, &cmsg->Command);
+	cmsg->Command = Command;
 	byteTRcpy(cmsg->m + 5, &cmsg->Subcommand);
 	cmsg->par = cpars[command_2_index(cmsg->Command, cmsg->Subcommand)];
 
@@ -634,7 +656,7 @@ unsigned capi_message2cmsg(_cmsg * cmsg, _cbyte * msg)
 	if (   cmsg->Command == CAPI_DATA_B3
 	    && (cmsg->Subcommand == CAPI_REQ || cmsg->Subcommand == CAPI_IND)) {
 		if (sizeof(void *) == 4) {
-				cmsg->Data = (void *) cmsg->Data32;
+				cmsg->Data = (void *)(unsigned long)cmsg->Data32;
 		} else {
 				cmsg->Data = (void *)(unsigned long)cmsg->Data64;
 		}
