@@ -954,7 +954,7 @@ ncciDataInd(Ncci_t *ncci, int pr, struct sk_buff *skb)
 	CAPIMSG_SETCONTROL(nskb->data, ncci->addr);
 	if (sizeof(nskb) == 4) {
 		capimsg_setu32(nskb->data, 12, (__u32)(((u_long)nskb->data + CAPI_B3_DATA_IND_HEADER_SIZE) & 0xffffffff));
-		*((__u64*)(nskb->data+22)) = cpu_to_le64(0);
+		memset(nskb->data+22, 0, 8);
 	} else {
 		capimsg_setu32(nskb->data, 12, 0);
 		*((__u64*)(nskb->data+22)) = 
