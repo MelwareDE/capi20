@@ -180,7 +180,7 @@ static xhfc_pi *pi = NULL;
 static unsigned int spi_sel = XHFC_SPI_SEL_DEFAULT;
 static unsigned int spi_speed = XHFC_SPI_SPEED_DEFAULT;
 /* Transparent packet size to upper layers (bytes) */
-static unsigned int trans_packet_size = 256;
+static unsigned int trans_packet_size = 160;
 #endif
 
 #include "dsp.h"
@@ -2366,7 +2366,7 @@ init_xhfc(xhfc_t * xhfc)
 	if (xhfc->irq_cnt > 2) {
 		/* Leave the board in testirq mode until configuration is finished */
 
-	  printk("Passed intrrupt test\n");
+	  printk("Passed interupt test\n");
 	  return (0);
 	} else {
 		if (debug & DEBUG_HFC_INIT)

@@ -839,6 +839,7 @@ ncciConstr(AppPlci_t *aplci)
 	ncci->contr = aplci->contr;
 	ncci->appl = aplci->appl;
 	ncci->window = aplci->appl->reg_params.datablkcnt;
+	ncci->maxdatalen = aplci->appl->reg_params.datablklen;
 	if (aplci->Bprotocol.B2 != 0) /* X.75 has own flowctrl */
 		test_and_set_bit(NCCI_STATE_FCTRL, &ncci->state);
 	if (aplci->Bprotocol.B3 == 0) {
@@ -915,6 +916,13 @@ ncciDataInd(Ncci_t *ncci, int pr, struct sk_buff *skb)
 	int i;
 
 	if (test_bit(APLCI_STATE_RX_OFF, &ncci->AppPlci->state)) {
+		dev_kfree_skb(skb);
+		return;
+	}
+
+	if (skb->len > ncci->maxdatalen) {
+		printk(KERN_DEBUG "%s: frame len=%d dropped, ncci maxdatalen is %d only.\n",
+			__FUNCTION__, skb->len, ncci->maxdatalen);
 		dev_kfree_skb(skb);
 		return;
 	}

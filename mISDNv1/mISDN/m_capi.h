@@ -282,6 +282,7 @@ struct _Ncci {
 	struct FsmInst		ncci_m;
 	int			savedstate;
 	int			window;
+	int			maxdatalen;
 	u_long			state;
 	ConfQueue_t		xmit_skb_handles[CAPI_MAXDATAWINDOW];
 	struct sk_buff		*recv_skb_handles[CAPI_MAXDATAWINDOW];
