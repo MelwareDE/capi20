@@ -981,6 +981,66 @@ xhfc_l2l1(mISDNinstance_t *inst, struct sk_buff *skb)
 	return (ret);
 }
 
+/*********************************************************/
+/* select free channel and return OK(0), -EBUSY, -EINVAL */
+/*********************************************************/
+static int
+SelFreeBChannel(xhfc_t *xhfc, int ch, channel_info_t *ci)
+{
+	channel_t		*bch;
+	mISDNstack_t		*bst;
+	struct list_head	*head;
+	int			cnr;
+
+	if (!ci)
+		return(-EINVAL);
+
+	bch = &(xhfc->chan[ch].ch);
+	ci->st.p = NULL;
+	cnr = 0;
+	bst = bch->inst.st;
+
+	if (list_empty(&bst->childlist)) {
+		if ((bst->id & FLG_CLONE_STACK) &&
+			(bst->childlist.prev != &bst->childlist)) {
+			head = bst->childlist.prev;
+		} else {
+			printk(KERN_ERR "%s: invalid empty childlist (no clone) stid(%x) childlist(%p<-%p->%p)\n",
+				__FUNCTION__, bst->id, bst->childlist.prev, &bst->childlist, bst->childlist.next);
+			return(-EINVAL);
+		}
+	} else
+		head = &bst->childlist;
+	list_for_each_entry(bst, head, list) {
+		if (cnr == 2) /* 2 B-channels */ {
+			printk(KERN_WARNING "%s: fatal error: more b-stacks than ports", __FUNCTION__);
+			return(-EINVAL);
+		}
+		if(!bst->mgr) {
+			int_errtxt("no mgr st(%p)", bst);
+			return(-EINVAL);
+		}
+		bch = &(xhfc->chan[cnr].ch);
+		if (!(ci->channel & (~CHANNEL_NUMBER))) {
+			/* only number is set */
+			if ((ci->channel & 0x3) == (cnr + 1)) {
+				if (test_bit(FLG_ACTIVE, &bch->Flags))
+					return(-EBUSY);
+				ci->st.p = bst;
+				return(0);
+			}
+		}
+		if ((ci->channel & (~CHANNEL_NUMBER)) == 0x00a18300) {
+			if (!test_bit(FLG_ACTIVE, &bch->Flags)) {
+				ci->st.p = bst;
+				return(0);
+			}
+		}
+		cnr++;
+	}
+	return(-EBUSY);
+}
+
 static int
 xhfc_manager(void *data, u_int prim, void *arg)
 {
@@ -1080,8 +1140,12 @@ xhfc_manager(void *data, u_int prim, void *arg)
 				return (-EINVAL);
 			break;
 		case MGR_SELCHANNEL | REQUEST:
-			// no special procedure
-			return (-EINVAL);
+			//return (-EINVAL);
+			if (!test_bit(FLG_DCHANNEL, &chan->Flags)) {
+				printk(KERN_WARNING "%s(MGR_SELCHANNEL|REQUEST): selchannel not dinst\n", __FUNCTION__);
+				return(-EINVAL);
+			}
+			return(SelFreeBChannel(xhfc, channel, arg));
 			PRIM_NOT_HANDLED(MGR_CTRLREADY | INDICATION);
 		default:
 			printk(KERN_WARNING

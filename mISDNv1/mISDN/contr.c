@@ -842,7 +842,7 @@ ControllerSelChannel(Controller_t *contr, u_int channel)
 		int_errtxt("no linklist for controller(%x)", contr->addr);
 		return NULL;
 	}
-	ci.channel = channel;
+	ci.channel = (channel & CHANNEL_NUMBER);
 	ci.st.p = NULL;
 	ret = mISDN_ctrl(contr->inst.st, MGR_SELCHANNEL | REQUEST, &ci);
 	if (ret) {
