@@ -1781,12 +1781,8 @@ static inline void xhfc_tx_prep(xhfc_t *xhfc, channel_t *ch, u16 b_ch,
 	t_slot = xhfc->chan[b_ch].slot_tx;
 	tx_samples = min((u16)SAMPLES_PER_CHUNK, remain);
 	for (chunk = 0; chunk < tx_samples; chunk++) {
-		if (test_bit(FLG_HDLC, &ch->Flags)) {
-			writechunk[N_SLOTS * chunk + t_slot] = *(data++);
-		} else {
-			/* transparent mode needs reverse bit order */
-			writechunk[N_SLOTS * chunk + t_slot] = _reversebits[*(data++)];
-		}
+		/* transparent mode needs reverse bit order */
+		writechunk[N_SLOTS * chunk + t_slot] = _reversebits[*(data++)];
 	}
 	dma_tx_bytes += tx_samples;
 	ch->tx_idx += tx_samples;
@@ -1813,12 +1809,8 @@ static inline void xhfc_rx_prep(xhfc_t *xhfc, channel_t *ch, u16 b_ch,
 	data = skb_put(ch->rx_skb, SAMPLES_PER_CHUNK);
 	t_slot = xhfc->chan[b_ch].slot_rx;
 	for (chunk = 0; chunk < SAMPLES_PER_CHUNK; chunk++) {
-		if (test_bit(FLG_HDLC, &ch->Flags)) {
-			*(data++) = readchunk[N_SLOTS * chunk + t_slot];
-		} else {
-			/* transparent mode needs reverse bit order */
-			*(data++) = _reversebits[readchunk[N_SLOTS * chunk + t_slot]];
-		}
+		/* transparent mode needs reverse bit order */
+		*(data++) = _reversebits[readchunk[N_SLOTS * chunk + t_slot]];
 	}
 	dma_rx_bytes += SAMPLES_PER_CHUNK;
 	if (ch->rx_skb->len >= trans_packet_size) {
@@ -1855,6 +1847,10 @@ static inline void xhfc_txrx_prep(xhfc_t *xhfc, u8 *writechunk, u8 *readchunk)
 	for (port = 0; port < xhfc->num_ports; port++) {
 		for (b_ch = port * 4; b_ch <= port * 4 + 1; b_ch++) {
 			ch = &xhfc->chan[b_ch].ch;
+
+			/* ignore when in HDLC mode */
+			if (test_bit(FLG_HDLC, &ch->Flags))
+				continue;
 
 			/* TX Prep */
 			if (test_bit(FLG_TX_BUSY, &ch->Flags)) {
