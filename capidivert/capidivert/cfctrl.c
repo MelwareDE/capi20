@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 		
-	err = capi20_register(0, 0, 2048, &ApplId);
+	err = capi20_register(2, 7, 2048, &ApplId);
 	if (err != CapiNoError) {
 		fprintf(stderr, "could not register - (%#x)\n", err);
 		return 1;
