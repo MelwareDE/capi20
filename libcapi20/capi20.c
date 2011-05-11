@@ -3,6 +3,10 @@
  * 
  * 2002-03-27 - Added remote capi features.
  *              Armin Schindler <armin@melware.de>
+ * 2011-05-11 - fixed remote CAPI (sent CAPI-Message length)
+ *              to make it work with Bintec hardware
+ *              (note: Bintec authentication not yet implemented!)
+ *              Walter Haslbeck <wh@hillerzentri.de>
  *
  * This program is free software and may be modified and 
  * distributed under the terms of the GNU Public License.
@@ -279,11 +283,11 @@ static int remote_command(int fd, unsigned char *buf, int len, int conf)
 
 static void set_rcapicmd_header(unsigned char **p, int len, _cword cmd, _cdword ctrl)
 {
-	put_netword(p, len);
-	put_word(p, 0);
-	put_word(p, 0);
-	put_netword(p, cmd);
-	put_word(p, 0);
+	put_netword(p, len);    /* length TCP Data (network byte order!) */
+	put_word(p, len - 2);   /* length CAPI Message (bintec routers DOES care!) */
+	put_word(p, 0);			/* ApplID */
+	put_netword(p, cmd);    /* CAPI Command Subcommand */
+	put_word(p, 0);         /* TODO: MessageNumber */
 	put_dword(p, ctrl);
 }
 
